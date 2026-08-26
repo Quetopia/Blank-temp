@@ -13,20 +13,25 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect GET-based converter
+      - name: Inspect converter JavaScript
         shell: bash
         run: |
           set -euo pipefail
           URL='https://yt-api.org/button/mp3/cmIfSfaHGlk'
           curl --max-time 30 -sS -L "$URL" -o page.html
-          echo '--- file ---'
-          file page.html
-          wc -c page.html
-          echo '--- urls ---'
+          echo '--- PAGE START ---'
+          cat page.html
+          echo
+          echo '--- PAGE END ---'
           python - <<'PY'
-          import re
+          import re, subprocess
           s=open('page.html',errors='ignore').read()
-          for u in re.findall(r'https?://[^\"\'<>\\s]+', s): print(u)
+          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)', s, re.I)
+          print('SCRIPT_SRCS',srcs)
+          for src in srcs:
+              if src.startswith('/'):
+                  src='https://yt-api.org'+src
+              if src.startswith('http'):
+                  print('\n--- SCRIPT',src,'---')
+                  subprocess.run(['curl','--max-time','30','-sS','-L',src])
           PY
-          echo '--- api/fetch/download hints ---'
-          grep -Eio '.{0,160}(fetch\(|axios|/api/|download|convert|mp3|cmIfSfaHGlk).{0,260}' page.html | head -160 || true
