@@ -8,30 +8,117 @@ on:
       - .github/workflows/single-youtube-mp3.yml
 
 jobs:
-  inspect:
+  convert:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect converter JavaScript
+      - name: Convert Addiction to MP3
         shell: bash
         run: |
           set -euo pipefail
-          URL='https://yt-api.org/button/mp3/cmIfSfaHGlk'
-          curl --max-time 30 -sS -L "$URL" -o page.html
-          echo '--- PAGE START ---'
-          cat page.html
-          echo
-          echo '--- PAGE END ---'
-          python - <<'PY'
-          import re, subprocess
-          s=open('page.html',errors='ignore').read()
-          srcs=re.findall(r'<script[^>]+src=["\']([^"\']+)', s, re.I)
-          print('SCRIPT_SRCS',srcs)
-          for src in srcs:
-              if src.startswith('/'):
-                  src='https://yt-api.org'+src
-              if src.startswith('http'):
-                  print('\n--- SCRIPT',src,'---')
-                  subprocess.run(['curl','--max-time','30','-sS','-L',src])
+          BASE='https://yt-api.org'
+          VIDEO='cmIfSfaHGlk'
+          rm -f cookies.txt headers.txt init.txt convert.json status.json Addiction.mp3
+
+          curl --max-time 30 -sS -D headers.txt -c cookies.txt -b cookies.txt \
+            -X POST "$BASE/" \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json' \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            --data '{"videoId":"cmIfSfaHGlk","format":"mp3"}' \
+            -o init.txt
+
+          TOKEN=$(python - <<'PY'
+          from pathlib import Path
+          token=''
+          for line in Path('headers.txt').read_text(errors='ignore').splitlines():
+              if line.lower().startswith('authorization:'):
+                  token=line.split(':',1)[1].strip()
+                  break
+          print(token)
           PY
+          )
+
+          if [ -z "$TOKEN" ]; then
+            echo 'No Authorization token received'
+            cat headers.txt
+            cat init.txt
+            exit 1
+          fi
+
+          echo 'Session token received.'
+
+          curl --max-time 60 -sS -c cookies.txt -b cookies.txt \
+            -X POST "$BASE/api" \
+            -H 'Content-Type: application/x-www-form-urlencoded' \
+            -H "Authorization: $TOKEN" \
+            --data '' \
+            -o convert.json
+
+          echo 'Initial conversion response:'
+          cat convert.json
+          echo
+
+          python - <<'PY'
+          import json
+          d=json.load(open('convert.json'))
+          open('status_value.txt','w').write(str(d.get('status','')))
+          open('hash_value.txt','w').write(str(d.get('hash','')))
+          open('download_value.txt','w').write(str(d.get('downloadUrl','') or ''))
+          if d.get('error') or d.get('status')=='fail':
+              raise SystemExit('converter failed: '+str(d))
+          PY
+
+          DL=$(cat download_value.txt)
+          HASH=$(cat hash_value.txt)
+
+          if [ -z "$DL" ]; then
+            if [ -z "$HASH" ]; then
+              echo 'No download URL or processing hash returned.'
+              exit 1
+            fi
+            for i in $(seq 1 30); do
+              sleep 3
+              curl --max-time 30 -sS -c cookies.txt -b cookies.txt \
+                -X POST "$BASE/api/status" \
+                -H 'Content-Type: application/json' \
+                -H "Authorization: $TOKEN" \
+                --data "{\"hash\":\"$HASH\"}" \
+                -o status.json
+              echo "Poll $i: $(cat status.json)"
+              DL=$(python - <<'PY'
+          import json
+          d=json.load(open('status.json'))
+          if d.get('status')=='fail':
+              raise SystemExit('conversion failed: '+str(d))
+          print(d.get('downloadUrl','') or '')
+          PY
+              )
+              [ -n "$DL" ] && break
+            done
+          fi
+
+          if [ -z "$DL" ]; then
+            echo 'Timed out waiting for MP3.'
+            exit 1
+          fi
+
+          echo 'Downloading final MP3...'
+          curl --max-time 120 -fL -sS -c cookies.txt -b cookies.txt "$DL" -o Addiction.mp3
+          file Addiction.mp3
+          ls -lh Addiction.mp3
+          python - <<'PY'
+          p=open('Addiction.mp3','rb').read(16)
+          print('First bytes:',p)
+          if p.lstrip().startswith(b'<') or p.lower().startswith(b'<!doctype'):
+              raise SystemExit('Final download is HTML, not audio')
+          PY
+
+      - name: Upload Addiction MP3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Addiction-MP3
+          path: Addiction.mp3
+          if-no-files-found: error
+          retention-days: 7
