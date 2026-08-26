@@ -27,11 +27,16 @@ export default function Home(){
  const [nearby,setNearby]=useState<Nearby[]>([]),[myLoc,setMyLoc]=useState<{latitude:number;longitude:number}|null>(null),[locating,setLocating]=useState(false),[radius,setRadius]=useState(50)
 
  function normalizeMessages(input:Msg[]){
-  const seenAssistant=new Set<string>();let users=0;const out:Msg[]=[]
+  const seenAssistant=new Set<string>();const out:Msg[]=[]
   for(const m of input){
-   if(m.role==='user'){if(users>=5)continue;users++;out.push(m);continue}
+   if(m.role==='user'){out.push(m);continue}
    const text=String(m.content||'').trim();if(!text||seenAssistant.has(text))continue
    seenAssistant.add(text);out.push({role:'assistant',content:text})
+  }
+  const legacyPending=out.some(m=>m.role==='assistant'&&(/what are your deal-breakers/i.test(m.content)||/what would make you see a match/i.test(m.content)))&&!out.some(m=>m.role==='assistant'&&m.content===AI_COMPLETE)
+  if(legacyPending){
+   while(out.length&&out[out.length-1].role==='assistant')out.pop()
+   out.push({role:'assistant',content:AI_QUESTIONS[4]})
   }
   return out
  }
@@ -45,7 +50,7 @@ export default function Home(){
  function go(next:string){if(next===tab||transitioning)return;setError('');setTransitionLabel(labels[next]||'QUETOPIA');setTransitioning(true);setTimeout(()=>{setTab(next);window.scrollTo({top:0,behavior:'instant' as ScrollBehavior})},360);setTimeout(()=>setTransitioning(false),820)}
  function saveMessages(m:Msg[]){const clean=normalizeMessages(m);setMessages(clean);if(user)try{localStorage.setItem(`quetopia-ai-${user.id}`,JSON.stringify(clean))}catch{}}
  const userAnswers=messages.filter(m=>m.role==='user').length
- const aiReady=userAnswers>=5
+ const aiReady=messages.some(m=>m.role==='assistant'&&m.content===AI_COMPLETE)
  function scanNetwork(){if(!aiReady){go('ai');return}void generateMatches()}
  function nextQuestion(answerCount:number){return answerCount>=5?AI_COMPLETE:AI_QUESTIONS[answerCount]}
  async function sign(e:FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setError('');setNotice('');const fd=new FormData(e.currentTarget),email=String(fd.get('email')),password=String(fd.get('password'));setUnconfirmed(email);try{if(authMode==='up'){const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:SITE}});if(error)throw error;setNotice(data.session?'Welcome to Quetopia.':'Check your email to verify your account, then come back and sign in.')}else{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;setTab('home')}}catch(x:any){fail(x)}finally{setBusy(false)}}
@@ -56,7 +61,7 @@ export default function Home(){
  async function loadMatches(){const {data}=await supabase.from('matches').select('*').order('compatibility_score',{ascending:false});setMatches(data??[])}
  async function generateMatches(){const {data,error}=await supabase.functions.invoke('ai-generate-matches',{body:{}});if(error)return fail(error);flash(`Scanned ${data?.evaluated??0} opportunities.`);void loadMatches()}
  async function decide(id:string,decision:'approve'|'reject'){const {error}=await supabase.functions.invoke('match-decision',{body:{match_id:id,decision}});if(error)return fail(error);flash('Signal saved.');void loadMatches()}
- async function sendChat(){if(!chat.trim()||aiBusy||aiReady)return;setError('');setAiNote('');const next=normalizeMessages([...messages,{role:'user',content:chat.trim()} as Msg]);saveMessages(next);setChat('');const answerCount=next.filter(m=>m.role==='user').length;if(answerCount>=5){saveMessages([...next,{role:'assistant',content:AI_COMPLETE}]);return}setAiBusy(true);try{const {data,error}=await supabase.functions.invoke('ai-onboarding',{body:{messages:next}});if(error)throw error;const reply=String(data?.message||data?.reply||'').trim();saveMessages([...next,{role:'assistant',content:reply||nextQuestion(answerCount)}])}catch{saveMessages([...next,{role:'assistant',content:nextQuestion(answerCount)}]);setAiNote('Signal received. I kept the conversation moving while the live AI connection reconnects.')}finally{setAiBusy(false)}}
+ async function sendChat(){if(!chat.trim()||aiBusy||aiReady)return;setError('');setAiNote('');const next=normalizeMessages([...messages,{role:'user',content:chat.trim()} as Msg]);saveMessages(next);setChat('');const answerCount=next.filter(m=>m.role==='user').length;const lastAssistant=[...messages].reverse().find(m=>m.role==='assistant')?.content||'';if(answerCount>=5||lastAssistant===AI_QUESTIONS[4]){saveMessages([...next,{role:'assistant',content:AI_COMPLETE}]);return}setAiBusy(true);try{const {data,error}=await supabase.functions.invoke('ai-onboarding',{body:{messages:next}});if(error)throw error;const reply=String(data?.message||data?.reply||'').trim();saveMessages([...next,{role:'assistant',content:reply||nextQuestion(answerCount)}])}catch{saveMessages([...next,{role:'assistant',content:nextQuestion(answerCount)}]);setAiNote('Signal received. I kept the conversation moving while the live AI connection reconnects.')}finally{setAiBusy(false)}}
  async function syncAI(){setAiNote('');const {error}=await supabase.functions.invoke('ai-profile-sync',{body:{messages}});if(error){setAiNote('Your answers are saved. Live AI profile sync is temporarily unavailable.');return}flash('Your AI signal is updated.')}
  async function createProject(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!user)return;const fd=new FormData(e.currentTarget);const p={owner_user_id:user.id,title:String(fd.get('title')),description:String(fd.get('description')||''),style_tags:String(fd.get('styles')||'').split(',').map(x=>x.trim()).filter(Boolean),location_mode:String(fd.get('location_mode')||'either'),city:String(fd.get('city')||''),region:String(fd.get('region')||''),country:'US',compensation:String(fd.get('compensation')||'open'),timeline_text:String(fd.get('timeline')||''),status:'active'};const {data:project,error}=await supabase.from('projects').insert(p).select('*').single();if(error)return fail(error);const {error:roleError}=await supabase.from('project_roles').insert({project_id:project.id,role_name:String(fd.get('role_name')),description:String(fd.get('role_description')||''),required_skills:String(fd.get('required_skills')||'').split(',').map(x=>x.trim()).filter(Boolean),preferred_styles:String(fd.get('preferred_styles')||'').split(',').map(x=>x.trim()).filter(Boolean)});if(roleError)return fail(roleError);flash('Opportunity launched into Quetopia.');e.currentTarget.reset();void loadProjects()}
  async function loadNearby(){if(!user)return;const {data:loc}=await supabase.from('user_locations').select('latitude,longitude').eq('user_id',user.id).maybeSingle();if(!loc){setMyLoc(null);setNearby([]);return}setMyLoc(loc);const {data,error}=await supabase.rpc('nearby_profiles',{max_miles:radius});if(error)return fail(error);setNearby((data??[]) as Nearby[])}
