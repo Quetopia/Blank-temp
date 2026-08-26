@@ -19,13 +19,27 @@ jobs:
           set -euo pipefail
           BASE='https://yt-api.org'
           VIDEO='cmIfSfaHGlk'
-          rm -f cookies.txt headers.txt init.txt convert.json status.json Addiction.mp3
+          PAGE="$BASE/button/mp3/$VIDEO"
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36'
+          rm -f cookies.txt headers.txt init.txt convert.json status.json Addiction.mp3 button.html
+
+          # Establish the same session a browser gets when it opens the download button.
+          curl --max-time 30 -sS -L -c cookies.txt -b cookies.txt \
+            -A "$UA" \
+            -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8' \
+            "$PAGE" -o button.html
 
           curl --max-time 30 -sS -D headers.txt -c cookies.txt -b cookies.txt \
+            -A "$UA" \
             -X POST "$BASE/" \
             -H 'Content-Type: application/json' \
             -H 'Accept: application/json' \
             -H 'X-Requested-With: XMLHttpRequest' \
+            -H "Origin: $BASE" \
+            -H "Referer: $PAGE" \
+            -H 'Sec-Fetch-Site: same-origin' \
+            -H 'Sec-Fetch-Mode: cors' \
+            -H 'Sec-Fetch-Dest: empty' \
             --data '{"videoId":"cmIfSfaHGlk","format":"mp3"}' \
             -o init.txt
 
@@ -50,9 +64,15 @@ jobs:
           echo 'Session token received.'
 
           curl --max-time 60 -sS -c cookies.txt -b cookies.txt \
+            -A "$UA" \
             -X POST "$BASE/api" \
             -H 'Content-Type: application/x-www-form-urlencoded' \
             -H "Authorization: $TOKEN" \
+            -H "Origin: $BASE" \
+            -H "Referer: $PAGE" \
+            -H 'Sec-Fetch-Site: same-origin' \
+            -H 'Sec-Fetch-Mode: cors' \
+            -H 'Sec-Fetch-Dest: empty' \
             --data '' \
             -o convert.json
 
@@ -63,8 +83,7 @@ jobs:
           python - <<'PY'
           import json
           d=json.load(open('convert.json'))
-          open('status_value.txt','w').write(str(d.get('status','')))
-          open('hash_value.txt','w').write(str(d.get('hash','')))
+          open('hash_value.txt','w').write(str(d.get('hash','') or ''))
           open('download_value.txt','w').write(str(d.get('downloadUrl','') or ''))
           if d.get('error') or d.get('status')=='fail':
               raise SystemExit('converter failed: '+str(d))
@@ -81,9 +100,12 @@ jobs:
             for i in $(seq 1 30); do
               sleep 3
               curl --max-time 30 -sS -c cookies.txt -b cookies.txt \
+                -A "$UA" \
                 -X POST "$BASE/api/status" \
                 -H 'Content-Type: application/json' \
                 -H "Authorization: $TOKEN" \
+                -H "Origin: $BASE" \
+                -H "Referer: $PAGE" \
                 --data "{\"hash\":\"$HASH\"}" \
                 -o status.json
               echo "Poll $i: $(cat status.json)"
@@ -105,7 +127,9 @@ jobs:
           fi
 
           echo 'Downloading final MP3...'
-          curl --max-time 120 -fL -sS -c cookies.txt -b cookies.txt "$DL" -o Addiction.mp3
+          curl --max-time 120 -fL -sS -c cookies.txt -b cookies.txt -A "$UA" \
+            -H "Referer: $PAGE" \
+            "$DL" -o Addiction.mp3
           file Addiction.mp3
           ls -lh Addiction.mp3
           python - <<'PY'
