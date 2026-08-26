@@ -8,39 +8,19 @@ on:
       - .github/workflows/single-youtube-mp3.yml
 
 jobs:
-  convert:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Convert via ytmp3.ge
+      - name: Inspect EzRip frontend
         shell: bash
         run: |
           set -euo pipefail
-          RESP=$(curl -sS -X POST 'https://ytmp3.ge/api/convert' \
-            -d 'youtube_url=https://youtu.be/cmIfSfaHGlk' \
-            -d 'quality=320')
-          echo "$RESP" > response.json
-          python - <<'PY'
-          import json
-          d=json.load(open('response.json'))
-          print(d)
-          if not d.get('success'):
-              raise SystemExit('conversion failed: '+str(d))
-          open('download_url.txt','w').write(d['downloadUrl'])
-          title=d.get('title') or 'cmIfSfaHGlk'
-          safe=''.join(c if c.isalnum() or c in ' ._-' else '_' for c in title).strip()[:120]
-          open('filename.txt','w').write((safe or 'cmIfSfaHGlk')+'.mp3')
-          PY
-          URL=$(cat download_url.txt)
-          NAME=$(cat filename.txt)
-          curl -fL --retry 3 --retry-delay 2 "$URL" -o "$NAME"
-          file "$NAME"
-          ls -lh "$NAME"
-      - name: Upload MP3
-        uses: actions/upload-artifact@v4
-        with:
-          name: cmIfSfaHGlk-mp3
-          path: '*.mp3'
-          if-no-files-found: error
-          retention-days: 7
+          curl -sS -L 'https://ezrip.org/' -o page.html
+          echo '--- script tags ---'
+          grep -Eo '<script[^>]+src=["'"'][^"'"']+["'"']' page.html || true
+          echo '--- api/fetch/form hints ---'
+          grep -Eio '.{0,120}(fetch\(|axios|/api/|convert|youtube_url|quality).{0,220}' page.html | head -120 || true
+          echo '--- forms ---'
+          grep -Eio '<form[^>]*>|<input[^>]*>|<button[^>]*>' page.html | head -120 || true
