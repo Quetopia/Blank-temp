@@ -8,11 +8,25 @@ type Spark={x:number;y:number;id:number}
 function playRewardSound(kind:Reward['kind']){
  try{
   const AC=(window.AudioContext||(window as any).webkitAudioContext); if(!AC)return
-  const ctx=new AC(); const now=ctx.currentTime; const master=ctx.createGain(); master.gain.setValueAtTime(.0001,now); master.gain.exponentialRampToValueAtTime(.18,now+.035); master.gain.exponentialRampToValueAtTime(.0001,now+1.15); master.connect(ctx.destination)
-  const base=kind==='media'?110:kind==='match'?138:kind==='location'?165:kind==='supernova'?82:123
-  ;[1,1.5,2,3].forEach((mult,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=i%2?'triangle':'sine';o.frequency.setValueAtTime(base*mult,now);o.frequency.exponentialRampToValueAtTime(base*mult*(kind==='supernova'?5.5:3.2),now+.72);g.gain.setValueAtTime(.0001,now+i*.025);g.gain.exponentialRampToValueAtTime(.11/(i+1),now+.07+i*.025);g.gain.exponentialRampToValueAtTime(.0001,now+.9);o.connect(g);g.connect(master);o.start(now+i*.018);o.stop(now+1)});
-  const len=Math.floor(ctx.sampleRate*.24),buffer=ctx.createBuffer(1,len,ctx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*(1-i/len);const noise=ctx.createBufferSource(),ng=ctx.createGain(),filter=ctx.createBiquadFilter();noise.buffer=buffer;filter.type='bandpass';filter.frequency.value=kind==='supernova'?1200:1900;filter.Q.value=.8;ng.gain.setValueAtTime(.0001,now+.48);ng.gain.exponentialRampToValueAtTime(kind==='supernova'?.32:.18,now+.53);ng.gain.exponentialRampToValueAtTime(.0001,now+.82);noise.connect(filter);filter.connect(ng);ng.connect(master);noise.start(now+.48);noise.stop(now+.85)
-  setTimeout(()=>ctx.close(),1500)
+  const ctx=new AC(); const now=ctx.currentTime
+  const master=ctx.createGain(); master.gain.setValueAtTime(.0001,now); master.gain.exponentialRampToValueAtTime(kind==='supernova'?.22:.15,now+.05); master.gain.exponentialRampToValueAtTime(.0001,now+(kind==='supernova'?3.45:1.8)); master.connect(ctx.destination)
+  const compressor=ctx.createDynamicsCompressor(); compressor.threshold.value=-18; compressor.knee.value=20; compressor.ratio.value=4; compressor.attack.value=.008; compressor.release.value=.35; compressor.connect(master)
+
+  // warm sub impact instead of a short electronic beep
+  const sub=ctx.createOscillator(),subGain=ctx.createGain(); sub.type='sine'; sub.frequency.setValueAtTime(kind==='supernova'?48:62,now); sub.frequency.exponentialRampToValueAtTime(31,now+.75); subGain.gain.setValueAtTime(.0001,now); subGain.gain.exponentialRampToValueAtTime(.34,now+.035); subGain.gain.exponentialRampToValueAtTime(.0001,now+1.15); sub.connect(subGain);subGain.connect(compressor);sub.start(now);sub.stop(now+1.2)
+
+  // lush suspended chord / shimmer
+  const chord=kind==='supernova'?[146.83,220,293.66,369.99,440]:kind==='media'?[110,164.81,220,293.66]:[123.47,185,246.94,311.13]
+  chord.forEach((freq,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();o.type=i<2?'sine':'triangle';o.frequency.setValueAtTime(freq,now);o.detune.value=(i-2)*4;f.type='lowpass';f.frequency.setValueAtTime(700,now);f.frequency.exponentialRampToValueAtTime(4200,now+1.25);g.gain.setValueAtTime(.0001,now+.12+i*.025);g.gain.exponentialRampToValueAtTime((kind==='supernova'?.065:.045)/(1+i*.12),now+.52+i*.035);g.gain.setValueAtTime((kind==='supernova'?.055:.04)/(1+i*.12),now+1.35);g.gain.exponentialRampToValueAtTime(.0001,now+(kind==='supernova'?3.2:1.7));o.connect(f);f.connect(g);g.connect(compressor);o.start(now+.08);o.stop(now+(kind==='supernova'?3.3:1.8))})
+
+  // filtered noise riser + soft impact gives the visual explosion some body
+  const dur=kind==='supernova'?1.45:.8,len=Math.floor(ctx.sampleRate*dur),buffer=ctx.createBuffer(1,len,ctx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*Math.pow(i/len,.7);const noise=ctx.createBufferSource(),ng=ctx.createGain(),filter=ctx.createBiquadFilter();noise.buffer=buffer;filter.type='bandpass';filter.Q.value=.7;filter.frequency.setValueAtTime(280,now);filter.frequency.exponentialRampToValueAtTime(5200,now+dur);ng.gain.setValueAtTime(.0001,now);ng.gain.exponentialRampToValueAtTime(kind==='supernova'?.12:.075,now+dur*.8);ng.gain.exponentialRampToValueAtTime(.0001,now+dur+.18);noise.connect(filter);filter.connect(ng);ng.connect(compressor);noise.start(now);noise.stop(now+dur+.2)
+
+  // small glassy constellation at the end of the supernova
+  if(kind==='supernova'){
+   ;[659.25,783.99,987.77,1174.66].forEach((freq,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=freq;const st=now+1.18+i*.18;g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(.055,st+.025);g.gain.exponentialRampToValueAtTime(.0001,st+.65);o.connect(g);g.connect(compressor);o.start(st);o.stop(st+.7)})
+  }
+  setTimeout(()=>ctx.close(),kind==='supernova'?3900:2100)
  }catch{}
 }
 
@@ -31,7 +45,7 @@ function rewardForText(text:string):Reward|null{
 
 export default function RewardLayer(){
  const [reward,setReward]=useState<Reward|null>(null),[sparks,setSparks]=useState<Spark[]>([]);const last=useRef('')
- function fire(r:Reward){if(last.current===r.title&&reward)return;last.current=r.title;setReward(r);playRewardSound(r.kind);setTimeout(()=>setReward(null),1900)}
+ function fire(r:Reward){if(last.current===r.title&&reward)return;last.current=r.title;setReward(r);playRewardSound(r.kind);setTimeout(()=>setReward(null),r.kind==='supernova'?3900:2400)}
  useEffect(()=>{
   const click=(e:MouseEvent)=>{const target=(e.target as HTMLElement).closest('button,.uploadButton') as HTMLElement|null;if(!target)return;const rect=target.getBoundingClientRect(),x=e.clientX||rect.left+rect.width/2,y=e.clientY||rect.top+rect.height/2,id=Date.now()+Math.random();setSparks(s=>[...s.slice(-5),{x,y,id}]);setTimeout(()=>setSparks(s=>s.filter(v=>v.id!==id)),720);const txt=(target.innerText||'').trim().toLowerCase();if(txt.includes('sync my ai'))setTimeout(()=>fire({title:'YOUR AI IS ALIVE',sub:'SIGNAL SYNCHRONIZED',kind:'supernova',id:Date.now()}),90)}
   document.addEventListener('click',click,true)
