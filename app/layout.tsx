@@ -1,4 +1,5 @@
 import './styles.css'
+import './media.css'
 
 export const metadata = {
   title: 'Quetopia Collab',
