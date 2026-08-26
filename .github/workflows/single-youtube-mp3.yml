@@ -10,17 +10,23 @@ on:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect EzRip frontend
+      - name: Inspect GET-based converter
         shell: bash
         run: |
           set -euo pipefail
-          curl -sS -L 'https://ezrip.org/' -o page.html
-          echo '--- script tags ---'
-          grep -Eo '<script[^>]+src=["'"'][^"'"']+["'"']' page.html || true
-          echo '--- api/fetch/form hints ---'
-          grep -Eio '.{0,120}(fetch\(|axios|/api/|convert|youtube_url|quality).{0,220}' page.html | head -120 || true
-          echo '--- forms ---'
-          grep -Eio '<form[^>]*>|<input[^>]*>|<button[^>]*>' page.html | head -120 || true
+          URL='https://yt-api.org/button/mp3/cmIfSfaHGlk'
+          curl --max-time 30 -sS -L "$URL" -o page.html
+          echo '--- file ---'
+          file page.html
+          wc -c page.html
+          echo '--- urls ---'
+          python - <<'PY'
+          import re
+          s=open('page.html',errors='ignore').read()
+          for u in re.findall(r'https?://[^\"\'<>\\s]+', s): print(u)
+          PY
+          echo '--- api/fetch/download hints ---'
+          grep -Eio '.{0,160}(fetch\(|axios|/api/|download|convert|mp3|cmIfSfaHGlk).{0,260}' page.html | head -160 || true
