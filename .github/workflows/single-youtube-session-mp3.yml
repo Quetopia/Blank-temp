@@ -13,107 +13,39 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Convert video to MP3
+      - name: Convert via alternate MP3 API
         shell: bash
         run: |
           set -euo pipefail
-          BASE='https://yt-api.org'
-          VIDEO='oo-XzqolMXM'
-          PAGE="$BASE/button/mp3/$VIDEO"
-          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36'
-          rm -f cookies.txt headers.txt init.txt convert.json status.json output.mp3 button.html hash_value.txt download_value.txt
-
-          curl --max-time 30 -sS -L -c cookies.txt -b cookies.txt \
-            -A "$UA" \
-            -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8' \
-            "$PAGE" -o button.html
-
-          curl --max-time 30 -sS -D headers.txt -c cookies.txt -b cookies.txt \
-            -A "$UA" \
-            -X POST "$BASE/" \
-            -H 'Content-Type: application/json' \
-            -H 'Accept: application/json' \
-            -H 'X-Requested-With: XMLHttpRequest' \
-            -H "Origin: $BASE" \
-            -H "Referer: $PAGE" \
-            -H 'Sec-Fetch-Site: same-origin' \
-            -H 'Sec-Fetch-Mode: cors' \
-            -H 'Sec-Fetch-Dest: empty' \
-            --data '{"videoId":"oo-XzqolMXM","format":"mp3"}' \
-            -o init.txt
-
-          TOKEN=$(python - <<'PY'
-          from pathlib import Path
-          token=''
-          for line in Path('headers.txt').read_text(errors='ignore').splitlines():
-              if line.lower().startswith('authorization:'):
-                  token=line.split(':',1)[1].strip()
-                  break
-          print(token)
-          PY
-          )
-          test -n "$TOKEN"
-
-          curl --max-time 60 -sS -c cookies.txt -b cookies.txt \
-            -A "$UA" \
-            -X POST "$BASE/api" \
-            -H 'Content-Type: application/x-www-form-urlencoded' \
-            -H "Authorization: $TOKEN" \
-            -H "Origin: $BASE" \
-            -H "Referer: $PAGE" \
-            -H 'Sec-Fetch-Site: same-origin' \
-            -H 'Sec-Fetch-Mode: cors' \
-            -H 'Sec-Fetch-Dest: empty' \
-            --data '' \
-            -o convert.json
-
+          RESP=$(curl --max-time 300 -sS -X POST 'https://ytmp3.ge/api/convert' \
+            -d 'youtube_url=https://youtu.be/oo-XzqolMXM' \
+            -d 'quality=320')
+          printf '%s' "$RESP" > response.json
           python - <<'PY'
           import json
-          d=json.load(open('convert.json'))
-          if d.get('error') or d.get('status')=='fail':
-              raise SystemExit('converter failed: '+str(d))
-          open('hash_value.txt','w').write(str(d.get('hash','') or ''))
-          open('download_value.txt','w').write(str(d.get('downloadUrl','') or ''))
-          PY
-
-          DL=$(cat download_value.txt)
-          HASH=$(cat hash_value.txt)
-          if [ -z "$DL" ]; then
-            test -n "$HASH"
-            for i in $(seq 1 30); do
-              sleep 3
-              curl --max-time 30 -sS -c cookies.txt -b cookies.txt \
-                -A "$UA" \
-                -X POST "$BASE/api/status" \
-                -H 'Content-Type: application/json' \
-                -H "Authorization: $TOKEN" \
-                -H "Origin: $BASE" \
-                -H "Referer: $PAGE" \
-                --data "{\"hash\":\"$HASH\"}" \
-                -o status.json
-              DL=$(python - <<'PY'
-          import json
-          d=json.load(open('status.json'))
-          if d.get('status')=='fail':
+          d=json.load(open('response.json'))
+          print('title:', d.get('title'))
+          print('success:', d.get('success'))
+          print('sizeMB:', d.get('sizeMB'))
+          if not d.get('success'):
               raise SystemExit('conversion failed: '+str(d))
-          print(d.get('downloadUrl','') or '')
+          open('download_url.txt','w').write(d['downloadUrl'])
+          title=d.get('title') or 'oo-XzqolMXM'
+          safe=''.join(c if c.isalnum() or c in ' ._-' else '_' for c in title).strip()[:100]
+          open('title.txt','w').write(safe or 'oo-XzqolMXM')
           PY
-              )
-              [ -n "$DL" ] && break
-            done
-          fi
-          test -n "$DL"
-
-          curl --max-time 120 -fL -sS -c cookies.txt -b cookies.txt -A "$UA" \
-            -H "Referer: $PAGE" "$DL" -o output.mp3
+          URL=$(cat download_url.txt)
+          curl --max-time 180 -fL -sS "$URL" -o output.mp3
           file output.mp3
           ls -lh output.mp3
           python - <<'PY'
-          p=open('output.mp3','rb').read(16)
-          if p.lstrip().startswith(b'<') or p.lower().startswith(b'<!doctype'):
-              raise SystemExit('Final download is HTML, not audio')
+          from pathlib import Path
+          p=Path('output.mp3').read_bytes()[:32]
+          if p.lstrip().startswith(b'<') or b'html' in p.lower():
+              raise SystemExit('download URL returned HTML, not audio')
+          if Path('output.mp3').stat().st_size < 100000:
+              raise SystemExit('audio file suspiciously small')
           PY
-
       - name: Upload MP3
         uses: actions/upload-artifact@v4
         with:
