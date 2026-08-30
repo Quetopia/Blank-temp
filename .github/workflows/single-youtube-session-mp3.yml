@@ -8,12 +8,12 @@ on:
       - .github/workflows/single-youtube-session-mp3.yml
 
 jobs:
-  convert:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Convert via alternate MP3 API
+      - name: Inspect generated download page
         shell: bash
         run: |
           set -euo pipefail
@@ -24,32 +24,28 @@ jobs:
           python - <<'PY'
           import json
           d=json.load(open('response.json'))
-          print('title:', d.get('title'))
-          print('success:', d.get('success'))
-          print('sizeMB:', d.get('sizeMB'))
+          print('API', d)
           if not d.get('success'):
-              raise SystemExit('conversion failed: '+str(d))
+              raise SystemExit(1)
           open('download_url.txt','w').write(d['downloadUrl'])
-          title=d.get('title') or 'oo-XzqolMXM'
-          safe=''.join(c if c.isalnum() or c in ' ._-' else '_' for c in title).strip()[:100]
-          open('title.txt','w').write(safe or 'oo-XzqolMXM')
           PY
           URL=$(cat download_url.txt)
-          curl --max-time 180 -fL -sS "$URL" -o output.mp3
-          file output.mp3
-          ls -lh output.mp3
+          echo "DOWNLOAD_PAGE=$URL"
+          curl --max-time 120 -sS -L -A 'Mozilla/5.0' -D headers.txt "$URL" -o page.html
+          echo '--- HEADERS ---'
+          cat headers.txt
+          echo '--- FILE ---'
+          file page.html
+          echo '--- URL CANDIDATES ---'
           python - <<'PY'
-          from pathlib import Path
-          p=Path('output.mp3').read_bytes()[:32]
-          if p.lstrip().startswith(b'<') or b'html' in p.lower():
-              raise SystemExit('download URL returned HTML, not audio')
-          if Path('output.mp3').stat().st_size < 100000:
-              raise SystemExit('audio file suspiciously small')
+          import re, html
+          s=open('page.html',errors='ignore').read()
+          for pat in [r'https?://[^"\'<> ]+', r'(?:href|src)=["\']([^"\']+)', r'url\s*[:=]\s*["\']([^"\']+)']:
+              vals=re.findall(pat,s,re.I)
+              for v in vals[:200]:
+                  print(html.unescape(v))
+          print('--- MP3 CONTEXT ---')
+          for m in re.finditer('mp3|download|audio|media',s,re.I):
+              a=max(0,m.start()-180); b=min(len(s),m.end()+300)
+              print(s[a:b].replace('\n',' ')[:600])
           PY
-      - name: Upload MP3
-        uses: actions/upload-artifact@v4
-        with:
-          name: oo-XzqolMXM-MP3
-          path: output.mp3
-          if-no-files-found: error
-          retention-days: 7
