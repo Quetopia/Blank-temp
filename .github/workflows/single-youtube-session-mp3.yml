@@ -1,110 +1,58 @@
 name: Single YouTube Session MP3
-
 on:
   push:
-    branches:
-      - main
     paths:
-      - .github/workflows/single-youtube-session-mp3.yml
-
+      - '.github/workflows/single-youtube-session-mp3.yml'
 jobs:
   convert:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch audio via live Invidious instances
+      - name: Convert Broken Flowers via mp3youtube API
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
-          VIDEO='oo-XzqolMXM'
-          rm -f instances.json video.json candidates.txt input_audio Broken-Flowers.mp3
-
           python - <<'PY'
-          import json, urllib.request
-          urls=[]
-          try:
-              with urllib.request.urlopen('https://api.invidious.io/instances.json?sort_by=health', timeout=30) as r:
-                  data=json.load(r)
-              for host, meta in data:
-                  d=(meta or {}).get('details') or {}
-                  if d.get('type') == 'https' and d.get('api') is True:
-                      uri=d.get('uri') or ('https://'+host)
-                      if uri not in urls: urls.append(uri.rstrip('/'))
-          except Exception as e:
-              print('instance list failed:',repr(e))
-          for u in ['https://inv.nadeko.net','https://yewtu.be','https://invidious.nerdvpn.de','https://inv.us.projectsegfau.lt','https://invidious.private.coffee','https://invidious.privacyredirect.com']:
-              if u not in urls: urls.append(u)
-          open('candidates.txt','w').write('\n'.join(urls[:40]))
-          print('instances:', len(urls[:40]))
-          print('\n'.join(urls[:40]))
+          import requests, json
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36'
+          headers_key={
+            'User-Agent':UA,
+            'Content-Type':'application/json',
+            'Origin':'https://iframe.y2meta-uk.com',
+            'Accept':'*/*'
+          }
+          r=requests.get('https://api.mp3youtube.cc/v2/sanity/key',headers=headers_key,timeout=30)
+          print('key status',r.status_code)
+          r.raise_for_status()
+          key=r.json()['key']
+          payload={'link':'https://youtu.be/oo-XzqolMXM','format':'mp3','audioBitrate':'320','videoQuality':'720','vCodec':'h264'}
+          headers_conv={
+            'User-Agent':UA,
+            'Content-Type':'application/json',
+            'Origin':'https://iframe.y2meta-uk.com',
+            'Accept':'*/*',
+            'key':key
+          }
+          r=requests.post('https://api.mp3youtube.cc/v2/converter',json=payload,headers=headers_conv,timeout=60)
+          print('convert status',r.status_code)
+          print('convert body',r.text[:1200])
+          r.raise_for_status()
+          data=r.json()
+          url=data.get('url')
+          if not url or not url.startswith('http'):
+            raise SystemExit('No download URL')
+          rr=requests.get(url,headers={'User-Agent':UA,'Referer':'https://iframe.y2meta-uk.com/'},allow_redirects=True,timeout=180)
+          print('download status',rr.status_code,'type',rr.headers.get('content-type'),'size',len(rr.content),'final',rr.url)
+          rr.raise_for_status()
+          if len(rr.content)<100000 or rr.content.lstrip().startswith(b'<'):
+            raise SystemExit('Not real audio')
+          open('Broken-Flowers.mp3','wb').write(rr.content)
           PY
-
-          SUCCESS=0
-          while IFS= read -r BASE; do
-            [ -n "$BASE" ] || continue
-            echo "Trying API $BASE"
-            if curl --connect-timeout 8 --max-time 35 -fsSL "$BASE/api/v1/videos/$VIDEO?local=true" -o video.json; then
-              if python - <<'PY'
-          import json
-          try:
-              d=json.load(open('video.json'))
-          except Exception:
-              raise SystemExit(1)
-          if d.get('error'):
-              print('API error:',d.get('error')); raise SystemExit(1)
-          fmts=d.get('adaptiveFormats') or []
-          audio=[]
-          for f in fmts:
-              typ=(f.get('type') or f.get('mimeType') or '').lower()
-              if typ.startswith('audio/') and f.get('url'):
-                  audio.append(f)
-          if not audio:
-              print('No audio formats; keys:',list(d)[:20]); raise SystemExit(1)
-          def br(f):
-              try:return int(f.get('bitrate') or 0)
-              except:return 0
-          audio.sort(key=br, reverse=True)
-          print('title:',d.get('title'))
-          for f in audio[:5]: print('audio',f.get('bitrate'),f.get('type') or f.get('mimeType'),f.get('url','')[:180])
-          open('audio_url.txt','w').write(audio[0]['url'])
-          PY
-              then
-                AUDIO_URL=$(cat audio_url.txt)
-                if [[ "$AUDIO_URL" == /* ]]; then AUDIO_URL="$BASE$AUDIO_URL"; fi
-                echo 'Downloading selected audio...'
-                if curl --connect-timeout 10 --max-time 220 -fL --retry 2 -A 'Mozilla/5.0' "$AUDIO_URL" -o input_audio; then
-                  SIZE=$(stat -c%s input_audio || echo 0)
-                  echo "input size=$SIZE"
-                  file input_audio || true
-                  if [ "$SIZE" -gt 100000 ]; then
-                    if ffmpeg -hide_banner -loglevel error -y -i input_audio -vn -codec:a libmp3lame -b:a 192k Broken-Flowers.mp3; then
-                      if [ $(stat -c%s Broken-Flowers.mp3) -gt 100000 ]; then
-                        SUCCESS=1
-                        break
-                      fi
-                    fi
-                  fi
-                fi
-              fi
-            fi
-          done < candidates.txt
-
-          if [ "$SUCCESS" -ne 1 ]; then
-            echo 'All Invidious instances failed'
-            exit 1
-          fi
-
           file Broken-Flowers.mp3
           ls -lh Broken-Flowers.mp3
-          ffprobe -v error -show_entries format=duration,size,format_name -of default=noprint_wrappers=1 Broken-Flowers.mp3
-
       - name: Upload MP3
         uses: actions/upload-artifact@v4
         with:
           name: Broken-Flowers-MP3
           path: Broken-Flowers.mp3
           if-no-files-found: error
-          retention-days: 7
