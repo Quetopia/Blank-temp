@@ -8,44 +8,74 @@ on:
       - .github/workflows/single-youtube-session-mp3.yml
 
 jobs:
-  inspect:
+  convert:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect generated download page
+      - name: Fetch audio through Piped and convert to MP3
         shell: bash
         run: |
           set -euo pipefail
-          RESP=$(curl --max-time 300 -sS -X POST 'https://ytmp3.ge/api/convert' \
-            -d 'youtube_url=https://youtu.be/oo-XzqolMXM' \
-            -d 'quality=320')
-          printf '%s' "$RESP" > response.json
-          python - <<'PY'
-          import json
-          d=json.load(open('response.json'))
-          print('API', d)
-          if not d.get('success'):
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          VIDEO='oo-XzqolMXM'
+          rm -f streams.json audio_url.txt input_audio Broken-Flowers.mp3
+
+          SUCCESS=0
+          for BASE in 'https://pipedapi.wireway.ch' 'https://api.piped.private.coffee'; do
+            echo "Trying $BASE"
+            if curl --max-time 45 -fsSL "$BASE/streams/$VIDEO" -o streams.json; then
+              if python - <<'PY'
+          import json, sys
+          d=json.load(open('streams.json'))
+          streams=d.get('audioStreams') or []
+          streams=[s for s in streams if s.get('url')]
+          if not streams:
               raise SystemExit(1)
-          open('download_url.txt','w').write(d['downloadUrl'])
+          streams.sort(key=lambda s: int(s.get('bitrate') or 0), reverse=True)
+          s=streams[0]
+          print('title:', d.get('title'))
+          print('selected bitrate:', s.get('bitrate'))
+          print('mime:', s.get('mimeType'))
+          open('audio_url.txt','w').write(s['url'])
           PY
-          URL=$(cat download_url.txt)
-          echo "DOWNLOAD_PAGE=$URL"
-          curl --max-time 120 -sS -L -A 'Mozilla/5.0' -D headers.txt "$URL" -o page.html
-          echo '--- HEADERS ---'
-          cat headers.txt
-          echo '--- FILE ---'
-          file page.html
-          echo '--- URL CANDIDATES ---'
+              then
+                AUDIO_URL=$(cat audio_url.txt)
+                if curl --max-time 180 -fL --retry 2 -A 'Mozilla/5.0' "$AUDIO_URL" -o input_audio; then
+                  if [ $(stat -c%s input_audio) -gt 100000 ]; then
+                    SUCCESS=1
+                    break
+                  fi
+                fi
+              fi
+            fi
+          done
+
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo 'Piped instances failed'
+            exit 1
+          fi
+
+          file input_audio
+          ls -lh input_audio
+          ffmpeg -hide_banner -loglevel error -y -i input_audio -vn -codec:a libmp3lame -b:a 192k 'Broken-Flowers.mp3'
+          file 'Broken-Flowers.mp3'
+          ls -lh 'Broken-Flowers.mp3'
           python - <<'PY'
-          import re, html
-          s=open('page.html',errors='ignore').read()
-          for pat in [r'https?://[^"\'<> ]+', r'(?:href|src)=["\']([^"\']+)', r'url\s*[:=]\s*["\']([^"\']+)']:
-              vals=re.findall(pat,s,re.I)
-              for v in vals[:200]:
-                  print(html.unescape(v))
-          print('--- MP3 CONTEXT ---')
-          for m in re.finditer('mp3|download|audio|media',s,re.I):
-              a=max(0,m.start()-180); b=min(len(s),m.end()+300)
-              print(s[a:b].replace('\n',' ')[:600])
+          from pathlib import Path
+          p=Path('Broken-Flowers.mp3')
+          if p.stat().st_size < 100000:
+              raise SystemExit('MP3 too small')
+          b=p.read_bytes()[:16]
+          if b.lstrip().startswith(b'<') or b'html' in b.lower():
+              raise SystemExit('not audio')
           PY
+
+      - name: Upload MP3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Broken-Flowers-MP3
+          path: Broken-Flowers.mp3
+          if-no-files-found: error
+          retention-days: 7
