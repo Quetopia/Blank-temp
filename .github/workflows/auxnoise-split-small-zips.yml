@@ -66,9 +66,9 @@ jobs:
           14 55:40.0–60:26.0
           TXT
           cd tracks
-          zip -q ../AUXNOISE_Part_1_Tracks_01-05.zip TRACKLIST.txt 01_Track_01.mp3 02_Track_02.mp3 03_Addiction.mp3 04_Track_04.mp3 05_Track_05.mp3
-          zip -q ../AUXNOISE_Part_2_Tracks_06-10.zip TRACKLIST.txt 06_Track_06.mp3 07_Track_07.mp3 08_Track_08.mp3 09_Broken_Flowers.mp3 10_Track_10.mp3
-          zip -q ../AUXNOISE_Part_3_Tracks_11-14.zip TRACKLIST.txt 11_Track_11.mp3 12_Track_12.mp3 13_Track_13.mp3 14_Track_14.mp3
+          zip -0 -q ../AUXNOISE_Part_1_Tracks_01-05.zip TRACKLIST.txt 01_Track_01.mp3 02_Track_02.mp3 03_Addiction.mp3 04_Track_04.mp3 05_Track_05.mp3
+          zip -0 -q ../AUXNOISE_Part_2_Tracks_06-10.zip TRACKLIST.txt 06_Track_06.mp3 07_Track_07.mp3 08_Track_08.mp3 09_Broken_Flowers.mp3 10_Track_10.mp3
+          zip -0 -q ../AUXNOISE_Part_3_Tracks_11-14.zip TRACKLIST.txt 11_Track_11.mp3 12_Track_12.mp3 13_Track_13.mp3 14_Track_14.mp3
           cd ..
           ls -lh AUXNOISE_Part_*.zip
           unzip -t AUXNOISE_Part_1_Tracks_01-05.zip >/dev/null
