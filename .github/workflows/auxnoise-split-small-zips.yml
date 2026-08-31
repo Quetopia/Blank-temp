@@ -1,0 +1,91 @@
+name: AUXNOISE Split Small ZIPs
+on:
+  push:
+    paths:
+      - '.github/workflows/auxnoise-split-small-zips.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download existing full-show artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -L --fail \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/Quetopia/Blank-temp/actions/artifacts/9740378903/zip" \
+            -o full-show-artifact.zip
+          mkdir artifact
+          unzip -q full-show-artifact.zip -d artifact
+          find artifact -maxdepth 2 -type f -ls
+          cp artifact/AUXNOISE-Full-Show.mp3 ./full.mp3
+      - name: Split songs and package three ZIPs
+        run: |
+          set -euo pipefail
+          mkdir tracks
+          ffmpeg -hide_banner -loglevel error -ss 00:00:58.0 -to 00:06:07.0 -i full.mp3 -c copy tracks/01_Track_01.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:06:52.5 -to 00:10:03.5 -i full.mp3 -c copy tracks/02_Track_02.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:10:23.5 -to 00:14:05.0 -i full.mp3 -c copy tracks/03_Addiction.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:14:17.5 -to 00:17:33.0 -i full.mp3 -c copy tracks/04_Track_04.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:18:15.5 -to 00:22:18.5 -i full.mp3 -c copy tracks/05_Track_05.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:22:31.5 -to 00:26:26.0 -i full.mp3 -c copy tracks/06_Track_06.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:27:11.5 -to 00:31:10.5 -i full.mp3 -c copy tracks/07_Track_07.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:32:20.5 -to 00:35:25.5 -i full.mp3 -c copy tracks/08_Track_08.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:35:25.5 -to 00:39:51.5 -i full.mp3 -c copy tracks/09_Broken_Flowers.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:40:04.5 -to 00:44:53.5 -i full.mp3 -c copy tracks/10_Track_10.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:44:57.5 -to 00:46:44.0 -i full.mp3 -c copy tracks/11_Track_11.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:47:02.0 -to 00:50:58.0 -i full.mp3 -c copy tracks/12_Track_12.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:51:19.5 -to 00:55:25.0 -i full.mp3 -c copy tracks/13_Track_13.mp3
+          ffmpeg -hide_banner -loglevel error -ss 00:55:40.0 -to 01:00:26.0 -i full.mp3 -c copy tracks/14_Track_14.mp3
+          cat > tracks/TRACKLIST.txt <<'TXT'
+          AUXNOISE @ Art Gallery Kafe — 9/30/23
+          Source: https://youtu.be/rRDKrEEfN0k
+          01 00:58.0–06:07.0
+          02 06:52.5–10:03.5
+          03 Addiction 10:23.5–14:05.0
+          04 14:17.5–17:33.0
+          05 18:15.5–22:18.5
+          06 22:31.5–26:26.0
+          07 27:11.5–31:10.5
+          08 32:20.5–35:25.5
+          09 Broken Flowers 35:25.5–39:51.5
+          10 40:04.5–44:53.5
+          11 44:57.5–46:44.0
+          12 47:02.0–50:58.0
+          13 51:19.5–55:25.0
+          14 55:40.0–60:26.0
+          TXT
+          cd tracks
+          zip -q ../AUXNOISE_Part_1_Tracks_01-05.zip TRACKLIST.txt 01_Track_01.mp3 02_Track_02.mp3 03_Addiction.mp3 04_Track_04.mp3 05_Track_05.mp3
+          zip -q ../AUXNOISE_Part_2_Tracks_06-10.zip TRACKLIST.txt 06_Track_06.mp3 07_Track_07.mp3 08_Track_08.mp3 09_Broken_Flowers.mp3 10_Track_10.mp3
+          zip -q ../AUXNOISE_Part_3_Tracks_11-14.zip TRACKLIST.txt 11_Track_11.mp3 12_Track_12.mp3 13_Track_13.mp3 14_Track_14.mp3
+          cd ..
+          ls -lh AUXNOISE_Part_*.zip
+          unzip -t AUXNOISE_Part_1_Tracks_01-05.zip >/dev/null
+          unzip -t AUXNOISE_Part_2_Tracks_06-10.zip >/dev/null
+          unzip -t AUXNOISE_Part_3_Tracks_11-14.zip >/dev/null
+      - name: Upload Part 1
+        uses: actions/upload-artifact@v4
+        with:
+          name: AUXNOISE-Part-1-Tracks-01-05
+          path: AUXNOISE_Part_1_Tracks_01-05.zip
+          if-no-files-found: error
+      - name: Upload Part 2
+        uses: actions/upload-artifact@v4
+        with:
+          name: AUXNOISE-Part-2-Tracks-06-10
+          path: AUXNOISE_Part_2_Tracks_06-10.zip
+          if-no-files-found: error
+      - name: Upload Part 3
+        uses: actions/upload-artifact@v4
+        with:
+          name: AUXNOISE-Part-3-Tracks-11-14
+          path: AUXNOISE_Part_3_Tracks_11-14.zip
+          if-no-files-found: error
