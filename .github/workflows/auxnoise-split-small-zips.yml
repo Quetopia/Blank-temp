@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install FFmpeg and ZIP tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg zip unzip >/dev/null
       - name: Download existing full-show artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -24,7 +28,6 @@ jobs:
             -o full-show-artifact.zip
           mkdir artifact
           unzip -q full-show-artifact.zip -d artifact
-          find artifact -maxdepth 2 -type f -ls
           cp artifact/AUXNOISE-Full-Show.mp3 ./full.mp3
       - name: Split songs and package three ZIPs
         run: |
