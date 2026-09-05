@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Validate runtime JavaScript
         run: |
           node --check signal016-bundle.js
@@ -23,6 +23,7 @@ jobs:
           node --check signal016-audio.js
           node --check signal016-onboarding.js
           node --check signal016-atmosphere.js
+          node --check signal017-arpg.js
       - name: Verify production loader references
         run: |
           grep -q "signal015.html" index.html
@@ -35,6 +36,7 @@ jobs:
           grep -q "signal016-audio.js" signal016-bundle.js
           grep -q "signal016-onboarding.js" signal016-bundle.js
           grep -q "signal016-atmosphere.js" signal016-bundle.js
+          grep -q "signal017-arpg.js" signal016-bundle.js
 
   browser-smoke:
     needs: runtime-syntax
@@ -49,20 +51,25 @@ jobs:
         run: |
           CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           test -n "$CHROME"
-          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=8000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
+          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=10000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
           grep -q 'id="prohud"' /tmp/quetopia-dom.html
           grep -q 'id="combatReadout"' /tmp/quetopia-dom.html
           grep -q 'id="qMenuShade"' /tmp/quetopia-dom.html
           grep -q 'id="audioState"' /tmp/quetopia-dom.html
           grep -q 'id="zoneReveal"' /tmp/quetopia-dom.html
           grep -q 'id="cinemaVignette"' /tmp/quetopia-dom.html
+          grep -q 'id="qGearAdv"' /tmp/quetopia-dom.html
+          grep -q 'id="qPassiveAdv"' /tmp/quetopia-dom.html
+          grep -q 'id="qSkillsAdv"' /tmp/quetopia-dom.html
+          grep -q 'id="qForgeAdv"' /tmp/quetopia-dom.html
+          grep -q 'id="qFilterAdv"' /tmp/quetopia-dom.html
           grep -q 'SIGNAL 016' /tmp/quetopia-dom.html
       - name: Show browser diagnostics on failure
         if: failure()
         run: |
           echo '--- DOM tail ---'
-          tail -80 /tmp/quetopia-dom.html || true
+          tail -120 /tmp/quetopia-dom.html || true
           echo '--- Chrome log ---'
-          tail -120 /tmp/chrome.log || true
+          tail -160 /tmp/chrome.log || true
           echo '--- Server log ---'
           cat /tmp/quetopia-server.log || true
