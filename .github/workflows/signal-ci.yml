@@ -18,6 +18,7 @@ jobs:
           node --check signal016-bundle.js
           node --check signal016-pro.js
           node --check signal016-world.js
+          node --check signal016-combat.js
           node --check signal016-systems-v2.js
       - name: Verify production loader references
         run: |
@@ -26,4 +27,5 @@ jobs:
           grep -q "signal016-bundle.js" signal015.html
           grep -q "signal016-pro.js" signal016-bundle.js
           grep -q "signal016-world.js" signal016-bundle.js
+          grep -q "signal016-combat.js" signal016-bundle.js
           grep -q "signal016-systems-v2.js" signal016-bundle.js
