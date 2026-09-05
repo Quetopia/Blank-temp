@@ -21,6 +21,7 @@ jobs:
           node --check signal016-combat.js
           node --check signal016-systems-v2.js
           node --check signal016-audio.js
+          node --check signal016-onboarding.js
       - name: Verify production loader references
         run: |
           grep -q "signal015.html" index.html
@@ -31,6 +32,7 @@ jobs:
           grep -q "signal016-combat.js" signal016-bundle.js
           grep -q "signal016-systems-v2.js" signal016-bundle.js
           grep -q "signal016-audio.js" signal016-bundle.js
+          grep -q "signal016-onboarding.js" signal016-bundle.js
 
   browser-smoke:
     needs: runtime-syntax
@@ -50,6 +52,7 @@ jobs:
           grep -q 'id="combatReadout"' /tmp/quetopia-dom.html
           grep -q 'id="qMenuShade"' /tmp/quetopia-dom.html
           grep -q 'id="audioState"' /tmp/quetopia-dom.html
+          grep -q 'id="zoneReveal"' /tmp/quetopia-dom.html
           grep -q 'SIGNAL 016' /tmp/quetopia-dom.html
       - name: Show browser diagnostics on failure
         if: failure()
