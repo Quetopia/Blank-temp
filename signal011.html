@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QUETOPIA — SIGNAL 011</title><style>html,body{margin:0;height:100%;background:#030208;color:white;font-family:system-ui;display:grid;place-items:center}.s{text-align:center}.q{font-size:52px;font-weight:900;letter-spacing:.12em}.m{opacity:.7;margin-top:10px}</style></head><body><div class="s"><div class="q">QUETOPIA</div><div class="m">REBUILDING RECEIVER RIG…</div></div><script>
+fetch('https://raw.githubusercontent.com/Quetopia/Blank-temp/main/signal007.html?ts='+Date.now(),{cache:'no-store'})
+.then(r=>{if(!r.ok)throw Error(r.status);return r.text()})
+.then(h=>{
+ h=h.replace('https://cdn.jsdelivr.net/npm/three@0.181.1/build/three.min.js','https://unpkg.com/three@0.159.0/build/three.min.js');
+ h=h.replace('<div class="key">Q</div>','<div class="key">__EKEY__</div>');
+ h=h.replace('<div class="key">E</div>','<div class="key">R</div>');
+ h=h.replace('<div class="key">__EKEY__</div>','<div class="key">E</div>');
+ h=h.replace('Q Resonance · E Fracture','E Resonance · R Fracture');
+ h=h.replace("if(e.key.toLowerCase()==='q')nova();if(e.key.toLowerCase()==='e')fracture()","if(e.key.toLowerCase()==='e')nova();if(e.key.toLowerCase()==='r')fracture()");
+ const newPlayer=`function makePlayer(){
+   let g=new THREE.Group();
+   let cloak=new THREE.Mesh(new THREE.ConeGeometry(.58,1.75,10),M(0x1c1734,.25,.15,.5));cloak.position.y=.9;cloak.castShadow=true;g.add(cloak);
+   let torso=new THREE.Mesh(new THREE.CylinderGeometry(.28,.36,.85,10),M(0x14233a,.35,.35,.45));torso.position.y=1.35;g.add(torso);
+   let headRig=new THREE.Group();headRig.position.y=1.98;g.add(headRig);
+   let head=new THREE.Mesh(new THREE.SphereGeometry(.28,16,12),M(0xc7c7da,.2));headRig.add(head);
+   let face=new THREE.Mesh(new THREE.SphereGeometry(.19,14,10),M(0x242035,.15));face.scale.set(1,.72,.25);face.position.set(0,-.015,.255);headRig.add(face);
+   let eyeL=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),M(0x65efff,3));eyeL.position.set(-.075,.035,.315);headRig.add(eyeL);
+   let eyeR=eyeL.clone();eyeR.position.x=.075;headRig.add(eyeR);
+   let brow=new THREE.Mesh(new THREE.BoxGeometry(.26,.035,.035),M(0x68408b,.5));brow.position.set(0,.115,.29);headRig.add(brow);
+   let hood=new THREE.Mesh(new THREE.TorusGeometry(.36,.09,8,24),M(0x54316d,.4));hood.rotation.x=Math.PI/2;hood.position.y=.02;headRig.add(hood);
+   let shoulderR=new THREE.Group();shoulderR.position.set(.34,1.48,.1);g.add(shoulderR);
+   let arm=new THREE.Mesh(new THREE.CylinderGeometry(.07,.065,.62,8),M(0x263451,.2,.2,.55));arm.rotation.x=Math.PI/2;arm.rotation.z=-.22;arm.position.set(.09,-.08,.24);shoulderR.add(arm);
+   let hand=new THREE.Mesh(new THREE.SphereGeometry(.095,10,8),M(0xc7c7da,.15));hand.position.set(.16,-.15,.52);shoulderR.add(hand);
+   let staffRig=new THREE.Group();staffRig.position.copy(hand.position);shoulderR.add(staffRig);
+   let staff=new THREE.Mesh(new THREE.CylinderGeometry(.042,.05,2.15,8),M(0x8c6c3c,.08,.3,.48));staff.rotation.x=Math.PI/2;staff.position.set(0,.06,.82);staffRig.add(staff);
+   staffTip=new THREE.Mesh(new THREE.SphereGeometry(.13,14,12),M(0x56eaff,2.8,.05,.15));staffTip.position.set(0,.06,1.9);staffRig.add(staffTip);
+   let tipRing=new THREE.Mesh(new THREE.TorusGeometry(.18,.025,8,20),new THREE.MeshBasicMaterial({color:0x7bf3ff,transparent:true,opacity:.85}));tipRing.position.copy(staffTip.position);tipRing.rotation.x=Math.PI/2;staffRig.add(tipRing);
+   let halo=new THREE.Mesh(new THREE.TorusGeometry(.46,.035,8,30),new THREE.MeshBasicMaterial({color:0x8d58ff,transparent:true,opacity:.85}));halo.position.y=2.15;halo.rotation.x=Math.PI/2;g.add(halo);
+   g.userData.headRig=headRig;g.userData.staffRig=staffRig;return g}`;
+ h=h.replace(/function makePlayer\(\)\{[\s\S]*?return g\}/,newPlayer);
+ h=h.replace("function faceAim(){let dx=aim.x-player.position.x,dz=aim.z-player.position.z;if(Math.abs(dx)+Math.abs(dz)>.01)player.rotation.y=Math.atan2(dx,dz)}","function faceAim(){if(!player||!aim)return;let dx=aim.x-player.position.x,dz=aim.z-player.position.z;if(Math.abs(dx)+Math.abs(dz)>.01){player.rotation.y=Math.atan2(dx,dz);}}");
+ document.open();document.write(h);document.close();
+}).catch(e=>document.body.innerHTML='<div class="s"><div class="q">QUETOPIA</div><div class="m">Rig rebuild failed: '+e.message+'</div></div>')
+</script></body></html>
