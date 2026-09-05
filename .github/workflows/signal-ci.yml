@@ -31,6 +31,7 @@ jobs:
           grep -q "signal015.html" index.html
           grep -q "signal015-core.html" signal015.html
           grep -q "signal016-bundle.js" signal015.html
+          grep -q "SIGNAL 017" signal015.html
           grep -q "signal016-pro.js" signal016-bundle.js
           grep -q "signal016-world.js" signal016-bundle.js
           grep -q "signal016-combat.js" signal016-bundle.js
@@ -55,7 +56,7 @@ jobs:
         run: |
           CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           test -n "$CHROME"
-          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=14000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
+          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=15000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
           grep -q 'id="prohud"' /tmp/quetopia-dom.html
           grep -q 'id="combatReadout"' /tmp/quetopia-dom.html
           grep -q 'id="qMenuShade"' /tmp/quetopia-dom.html
@@ -71,13 +72,13 @@ jobs:
           grep -q 'id="qArmoryWrap"' /tmp/quetopia-dom.html
           grep -q 'id="qResetPassives"' /tmp/quetopia-dom.html
           grep -q 'id="qResetSkills"' /tmp/quetopia-dom.html
-          grep -q 'SIGNAL 016' /tmp/quetopia-dom.html
+          grep -q 'SIGNAL 017' /tmp/quetopia-dom.html
       - name: Show browser diagnostics on failure
         if: failure()
         run: |
           echo '--- DOM tail ---'
-          tail -160 /tmp/quetopia-dom.html || true
+          tail -180 /tmp/quetopia-dom.html || true
           echo '--- Chrome log ---'
-          tail -200 /tmp/chrome.log || true
+          tail -220 /tmp/chrome.log || true
           echo '--- Server log ---'
           cat /tmp/quetopia-server.log || true
