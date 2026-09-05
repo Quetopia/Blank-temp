@@ -1,6 +1,6 @@
 (async function(){
  const base='https://raw.githubusercontent.com/Quetopia/Blank-temp/main/';
- const modules=['signal016-pro.js','signal016-world.js','signal016-combat.js','signal016-systems-v2.js','signal016-audio.js','signal016-onboarding.js','signal016-atmosphere.js','signal017-arpg.js','signal017-refinements.js'];
+ const modules=['signal016-pro.js','signal016-world.js','signal016-combat.js','signal016-systems-v2.js','signal016-audio.js','signal016-onboarding.js','signal016-atmosphere.js','signal017-arpg.js','signal017-refinements.js','signal017-qol.js'];
  for(const file of modules){
   const r=await fetch(base+file+'?ts='+Date.now(),{cache:'no-store'});
   if(!r.ok)throw new Error(file+' '+r.status);
