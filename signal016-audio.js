@@ -1,0 +1,23 @@
+(function(){
+'use strict';
+let ctx=null,master=null,ambBus=null,fxBus=null,filter=null,started=false,muted=false,last=performance.now(),at=0,lastShots=0,lastDead=0,lastAnchors=0,lastBossPhase=1;
+const noteSet=[55,65.406,73.416,82.407,98,110,130.813];
+const css=document.createElement('style');css.textContent=`#audioState{position:fixed;right:26px;bottom:162px;z-index:8;pointer-events:none;font:800 8px system-ui;letter-spacing:.14em;color:#8ea4aa;text-shadow:0 2px 4px #000}.audioPulse{color:#73eaff}`;document.head.appendChild(css);const ui=document.createElement('div');ui.id='audioState';ui.textContent='V · SIGNAL AUDIO READY';document.body.appendChild(ui);
+function makeGain(v){let g=ctx.createGain();g.gain.value=v;return g}
+function osc(type,freq,gain,dest,detune=0){let o=ctx.createOscillator(),g=makeGain(gain);o.type=type;o.frequency.value=freq;o.detune.value=detune;o.connect(g);g.connect(dest);o.start();return{o,g}}
+function startAudio(){if(started){if(ctx&&ctx.state==='suspended')ctx.resume();return}try{ctx=new (window.AudioContext||window.webkitAudioContext)();master=makeGain(.65);ambBus=makeGain(.05);fxBus=makeGain(.16);filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=520;filter.Q.value=.7;ambBus.connect(filter);filter.connect(master);fxBus.connect(master);master.connect(ctx.destination);
+ let a=osc('sine',55,.28,ambBus),b=osc('triangle',82.407,.06,ambBus,-7),c=osc('sine',110,.035,ambBus,5);a.g.gain.setValueAtTime(.22,ctx.currentTime);b.g.gain.setValueAtTime(.045,ctx.currentTime);c.g.gain.setValueAtTime(.025,ctx.currentTime);
+ let lfo=ctx.createOscillator(),lg=makeGain(55);lfo.frequency.value=.08;lfo.connect(lg);lg.connect(filter.frequency);lfo.start();started=true;ui.textContent='V · SIGNAL AUDIO ACTIVE';ui.classList.add('audioPulse');setTimeout(()=>ui.classList.remove('audioPulse'),700)}catch(e){ui.textContent='SIGNAL AUDIO UNAVAILABLE'}}
+function ping(freq,dur=.16,vol=.06,type='sine',pan=0){if(!started||muted||!ctx)return;let o=ctx.createOscillator(),g=ctx.createGain(),p=ctx.createStereoPanner?ctx.createStereoPanner():null;o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(20,freq*.74),ctx.currentTime+dur);g.gain.setValueAtTime(.0001,ctx.currentTime);g.gain.exponentialRampToValueAtTime(vol,ctx.currentTime+.015);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+dur);o.connect(g);if(p){p.pan.value=Math.max(-1,Math.min(1,pan));g.connect(p);p.connect(fxBus)}else g.connect(fxBus);o.start();o.stop(ctx.currentTime+dur+.03)}
+function chord(root=55){if(!started||muted)return;[1,1.5,2].forEach((m,i)=>setTimeout(()=>ping(root*m,.62,.025,'sine',(i-1)*.35),i*70))}
+function pulseBass(freq=55){if(!started||muted)return;ping(freq,.28,.095,'triangle',0)}
+function toggle(){muted=!muted;if(master&&ctx){master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setTargetAtTime(muted?0:.65,ctx.currentTime,.04)}ui.textContent=muted?'V · SIGNAL AUDIO MUTED':'V · SIGNAL AUDIO ACTIVE'}
+if(window.start)start.addEventListener('click',startAudio);addEventListener('keydown',e=>{if(e.key.toLowerCase()==='v'&&!e.repeat){startAudio();toggle()}});
+function frame(){let now=performance.now(),dt=Math.min(.08,(now-last)/1000);last=now;if(!isFinite(dt)||dt<=0)dt=.016;at+=dt;if(started&&ctx){let near=0;try{for(let e of enemies)if(!e.dead&&e.g.position.distanceTo(player.position)<7)near++}catch(e){}let target=360+Math.min(near,8)*115+(boss&&!boss.dead?240:0);filter.frequency.setTargetAtTime(target,ctx.currentTime,.35);ambBus.gain.setTargetAtTime(.042+Math.min(near,8)*.0028,ctx.currentTime,.5);
+ if(shots.length>lastShots){let s=shots[shots.length-1];if(s&&s.enemy)ping(147,.12,.035,'square',.25);else ping(392,.10,.028,'sine',-.15)}lastShots=shots.length;
+ let dead=enemies.reduce((n,e)=>n+(e.dead?1:0),0);if(dead>lastDead){let gained=dead-lastDead;for(let i=0;i<Math.min(3,gained);i++)setTimeout(()=>ping(noteSet[(dead+i)%noteSet.length]*2,.22,.045,'triangle',(Math.random()-.5)*.7),i*55);if(dead%5===0)chord(noteSet[dead%noteSet.length])}lastDead=dead;
+ if(anchorsDone>lastAnchors){chord(noteSet[(anchorsDone+2)%noteSet.length]);setTimeout(()=>pulseBass(55*anchorsDone),120);lastAnchors=anchorsDone}
+ if(boss&&!boss.dead){let frac=boss.hp/boss.max;if(frac<.34&&lastBossPhase<3){lastBossPhase=3;chord(73.416);pulseBass(36.708)}else if(frac<.67&&lastBossPhase<2){lastBossPhase=2;chord(65.406);pulseBass(41.203)}}
+ if(running&&Math.floor(at)%8===0&&Math.floor(at-dt)%8!==0)pulseBass(noteSet[Math.floor(at/8)%3]);}
+ requestAnimationFrame(frame)}requestAnimationFrame(frame);console.log('[QUETOPIA] SIGNAL 016 adaptive audio module ready');
+})();
