@@ -1,0 +1,29 @@
+name: Quetopia Signal CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  runtime-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate runtime JavaScript
+        run: |
+          node --check signal016-bundle.js
+          node --check signal016-pro.js
+          node --check signal016-world.js
+          node --check signal016-systems-v2.js
+      - name: Verify production loader references
+        run: |
+          grep -q "signal015.html" index.html
+          grep -q "signal015-core.html" signal015.html
+          grep -q "signal016-bundle.js" signal015.html
+          grep -q "signal016-pro.js" signal016-bundle.js
+          grep -q "signal016-world.js" signal016-bundle.js
+          grep -q "signal016-systems-v2.js" signal016-bundle.js
