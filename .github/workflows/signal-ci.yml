@@ -30,6 +30,7 @@ jobs:
           node --check signal017-qol.js
           node --check signal019-kinetic.js
           node --check signal019-fidelity.js
+          node --check signal019-motion.js
       - name: Verify production loader references
         run: |
           grep -q "signal019.html" index.html
@@ -50,6 +51,7 @@ jobs:
           grep -q "signal017-qol.js" signal019-bundle.js
           grep -q "signal019-kinetic.js" signal019-bundle.js
           grep -q "signal019-fidelity.js" signal019-bundle.js
+          grep -q "signal019-motion.js" signal019-bundle.js
 
   browser-smoke:
     needs: runtime-syntax
