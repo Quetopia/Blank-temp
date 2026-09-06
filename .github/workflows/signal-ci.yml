@@ -28,7 +28,7 @@ jobs:
           node --check signal017-arpg.js
           node --check signal017-refinements.js
           node --check signal017-qol.js
-          node --check signal018-polish.js
+          node --check signal019-kinetic.js
           node --check signal019-fidelity.js
       - name: Verify production loader references
         run: |
@@ -36,6 +36,8 @@ jobs:
           grep -q "signal015-core.html" signal019.html
           grep -q "signal019-bundle.js" signal019.html
           grep -q "SIGNAL 019" signal019.html
+          grep -q "SIGNAL 019" signal015.html
+          grep -q "signal019-bundle.js" signal015.html
           grep -q "signal016-pro.js" signal019-bundle.js
           grep -q "signal016-world.js" signal019-bundle.js
           grep -q "signal016-combat.js" signal019-bundle.js
@@ -46,7 +48,7 @@ jobs:
           grep -q "signal017-arpg.js" signal019-bundle.js
           grep -q "signal017-refinements.js" signal019-bundle.js
           grep -q "signal017-qol.js" signal019-bundle.js
-          grep -q "signal018-polish.js" signal019-bundle.js
+          grep -q "signal019-kinetic.js" signal019-bundle.js
           grep -q "signal019-fidelity.js" signal019-bundle.js
 
   browser-smoke:
@@ -78,7 +80,7 @@ jobs:
           grep -q 'id="qArmoryWrap"' /tmp/quetopia-dom.html
           grep -q 'id="qResetPassives"' /tmp/quetopia-dom.html
           grep -q 'id="qResetSkills"' /tmp/quetopia-dom.html
-          grep -q 'id="q18Status"' /tmp/quetopia-dom.html
+          grep -q 'id="q19Status"' /tmp/quetopia-dom.html
           grep -q 'id="q19Mark"' /tmp/quetopia-dom.html
           grep -q 'SIGNAL 019' /tmp/quetopia-dom.html
       - name: Show browser diagnostics on failure
