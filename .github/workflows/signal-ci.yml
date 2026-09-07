@@ -38,7 +38,7 @@ jobs:
           grep -q "signal020-bundle.js" signal020.html
           grep -q "signal021-controls-fixed.js" signal020-bundle.js
           grep -q "HOLD Q Signal Shot" signal021-controls-fixed.js
-          grep -q "ENTER THE FRACTURED GROVE" signal021-controls-fixed.js
+          grep -q "q21EnterGame" signal021-controls-fixed.js
           grep -q "MANTIS_HYPERION" signal020-arpg.js
           grep -q "PUNKIN" signal020-arpg.js
           grep -q "Q20_DRUID" signal020-arpg.js
@@ -52,16 +52,16 @@ jobs:
         run: |
           python3 -m http.server 8080 > /tmp/quetopia-server.log 2>&1 &
           sleep 2
-      - name: Boot game in headless Chrome
+      - name: Boot and enter game in headless Chrome
         run: |
           CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           test -n "$CHROME"
-          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=23000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
+          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=26000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
           grep -q 'id="prohud"' /tmp/quetopia-dom.html
           grep -q 'id="combatReadout"' /tmp/quetopia-dom.html
-          grep -q 'id="qMenuShade"' /tmp/quetopia-dom.html
           grep -q 'PUNKIN' /tmp/quetopia-dom.html
           grep -q 'SIGNAL 021' /tmp/quetopia-dom.html
+          grep -q 'data-q21started="1"' /tmp/quetopia-dom.html
           grep -q '>Q<' /tmp/quetopia-dom.html
           grep -q '>W<' /tmp/quetopia-dom.html
           grep -q '>E<' /tmp/quetopia-dom.html
