@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  if (typeof scene === 'undefined' || typeof THREE === 'undefined') return;
+  if (typeof scene === 'undefined' || typeof THREE === 'undefined' || typeof renderer === 'undefined' || !renderer) return;
 
   // One deterministic surface shared by static stone meshes, not a texture per object.
   const canvas = document.createElement('canvas');
@@ -58,7 +58,7 @@
       if (!originals.has(object)) originals.set(object, object.visible);
       object.visible = reduced ? false : originals.get(object);
     });
-    renderer.setPixelRatio(Math.min(reduced ? 1.25 : 2, devicePixelRatio));
+    renderer.setPixelRatio(Math.min(reduced ? 1 : 1.25, devicePixelRatio));
     effects.textContent = reduced ? 'Ambient effects: Reduced' : 'Ambient effects: Full';
     effects.setAttribute('aria-pressed', String(reduced));
   }
