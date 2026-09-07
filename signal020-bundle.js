@@ -8,5 +8,6 @@
   eval(js);
  }
  try{window.q21SyncUI&&window.q21SyncUI()}catch(e){console.warn('[QUETOPIA] SIGNAL 021 UI sync',e)}
+ setTimeout(()=>{try{const intro=document.getElementById('intro');if(intro&&intro.style.display!=='none'&&window.q21EnterGame)window.q21EnterGame()}catch(e){console.warn('[QUETOPIA] SIGNAL 021 auto-enter',e)}},350);
  console.log('[QUETOPIA] SIGNAL 021 stable bundle complete');
 })().catch(e=>{console.error('[QUETOPIA] SIGNAL 021 stable bundle failure',e);try{say('SIGNAL 021 MODULE FAILURE · '+e.message)}catch(_){}});
