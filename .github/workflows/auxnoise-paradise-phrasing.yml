@@ -15,8 +15,10 @@ jobs:
           gh api repos/${{ github.repository }}/actions/artifacts/10001666584/zip > paradise.zip
           unzip -o paradise.zip
           ls -lh Auxnoise-Paradise.mp3
-      - name: Install transcription tools
+      - name: Install audio and transcription tools
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
           python -m pip install -q openai-whisper
       - name: Analyze vocal phrasing with lyric prompt
         run: |
