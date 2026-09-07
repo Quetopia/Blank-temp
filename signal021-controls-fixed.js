@@ -2,7 +2,6 @@
 'use strict';
 /* SIGNAL 021 stable control layer — deliberately no MutationObserver */
 const held={q:false,w:false,e:false,r:false};
-let raf=0;
 function editable(t){const n=(t&&t.tagName||'').toLowerCase();return n==='input'||n==='textarea'||n==='select'||(t&&t.isContentEditable)}
 function cast(k){
   try{
@@ -35,8 +34,10 @@ function enterGame(e){
     if(typeof running!=='undefined')running=true;
     if(typeof clock!=='undefined'&&clock&&clock.getDelta)clock.getDelta();
     if(typeof say==='function')say('SIGNAL 021 ACQUIRED · ENTER THE FRACTURED GROVE');
+    document.body.dataset.q21started='1';
   }catch(err){console.error('[QUETOPIA] SIGNAL 021 enter',err)}
 }
+window.q21EnterGame=enterGame;
 function wireStart(){
   const b=document.getElementById('start');
   if(!b)return false;
@@ -55,11 +56,7 @@ window.q21SyncUI=function(){
 window.q21SyncUI();
 setTimeout(window.q21SyncUI,800);
 setTimeout(window.q21SyncUI,2500);
-
-function loop(){
-  if(held.q)cast('q');if(held.w)cast('w');if(held.e)cast('e');if(held.r)cast('r');
-  raf=requestAnimationFrame(loop);
-}
-raf=requestAnimationFrame(loop);
+function loop(){if(held.q)cast('q');if(held.w)cast('w');if(held.e)cast('e');if(held.r)cast('r');requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
 console.log('[QUETOPIA] SIGNAL 021 stable controls active');
 })();
