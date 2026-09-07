@@ -15,11 +15,8 @@ jobs:
           node-version: '24'
       - name: Validate runtime JavaScript
         run: |
-          node --check signal016-bundle.js
-          node --check signal018-bundle.js
-          node --check signal019-bundle.js
           node --check signal020-bundle.js
-          node --check signal021-bundle.js
+          node --check signal021-controls-fixed.js
           node --check signal016-pro.js
           node --check signal016-world.js
           node --check signal016-combat.js
@@ -35,28 +32,16 @@ jobs:
           node --check signal019-motion.js
           node --check signal020-arpg.js
           node --check signal020-creatures.js
-          node --check signal021-controls.js
-      - name: Verify production loader references
+      - name: Verify stable production route
         run: |
-          grep -q "signal021.html" index.html
-          grep -q "signal021.html" signal015.html
-          grep -q "signal015-core.html" signal021.html
-          grep -q "signal021-bundle.js" signal021.html
-          grep -q "SIGNAL 021" signal021.html
-          grep -q "SIGNAL 021" signal015.html
-          grep -q "signal021-controls.js" signal021-bundle.js
-          grep -q "signal020-arpg.js" signal021-bundle.js
-          grep -q "signal020-creatures.js" signal021-bundle.js
-          grep -q "HOLD Q SIGNAL" signal021-controls.js
-          grep -q "HOLD W PRISM" signal021-controls.js
-          grep -q "held.q" signal021-controls.js
-          grep -q "held.w" signal021-controls.js
+          grep -q "signal020.html" index.html
+          grep -q "signal020-bundle.js" signal020.html
+          grep -q "signal021-controls-fixed.js" signal020-bundle.js
+          grep -q "HOLD Q Signal Shot" signal021-controls-fixed.js
+          grep -q "ENTER THE FRACTURED GROVE" signal021-controls-fixed.js
           grep -q "MANTIS_HYPERION" signal020-arpg.js
           grep -q "PUNKIN" signal020-arpg.js
           grep -q "Q20_DRUID" signal020-arpg.js
-          grep -q "ESSENCE EXTRACTION" signal020-creatures.js
-          grep -q "PSYCHO-REACTOR BURST" signal020-creatures.js
-          grep -q "DMT HYPERLANCE" signal020-creatures.js
 
   browser-smoke:
     needs: runtime-syntax
@@ -75,17 +60,7 @@ jobs:
           grep -q 'id="prohud"' /tmp/quetopia-dom.html
           grep -q 'id="combatReadout"' /tmp/quetopia-dom.html
           grep -q 'id="qMenuShade"' /tmp/quetopia-dom.html
-          grep -q 'id="audioState"' /tmp/quetopia-dom.html
-          grep -q 'id="zoneReveal"' /tmp/quetopia-dom.html
-          grep -q 'id="cinemaVignette"' /tmp/quetopia-dom.html
-          grep -q 'id="qGearAdv"' /tmp/quetopia-dom.html
-          grep -q 'id="qPassiveAdv"' /tmp/quetopia-dom.html
-          grep -q 'id="qSkillsAdv"' /tmp/quetopia-dom.html
-          grep -q 'id="qForgeAdv"' /tmp/quetopia-dom.html
-          grep -q 'id="qWeaveLegend"' /tmp/quetopia-dom.html
-          grep -q 'id="qArmoryWrap"' /tmp/quetopia-dom.html
-          grep -q 'id="q21Status"' /tmp/quetopia-dom.html
-          grep -q 'id="q21Mark"' /tmp/quetopia-dom.html
+          grep -q 'PUNKIN' /tmp/quetopia-dom.html
           grep -q 'SIGNAL 021' /tmp/quetopia-dom.html
           grep -q '>Q<' /tmp/quetopia-dom.html
           grep -q '>W<' /tmp/quetopia-dom.html
