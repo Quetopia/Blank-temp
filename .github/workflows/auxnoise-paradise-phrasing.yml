@@ -1,0 +1,48 @@
+name: AUXNOISE Paradise Phrasing
+on:
+  push:
+    paths:
+      - '.github/workflows/auxnoise-paradise-phrasing.yml'
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download converted Paradise MP3 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/artifacts/10001666584/zip > paradise.zip
+          unzip -o paradise.zip
+          ls -lh Auxnoise-Paradise.mp3
+      - name: Install transcription tools
+        run: |
+          python -m pip install -q openai-whisper
+      - name: Analyze vocal phrasing with lyric prompt
+        run: |
+          python - <<'PY'
+          import whisper, json
+          audio='Auxnoise-Paradise.mp3'
+          prompt='''I took a walk along the coast. I sold the things that mean the most. I can see my ghost. Why did you try shoot me down. Like a bullet in the head. Wrecking ball, knocking all on painted wall. When there's no one left around. Run around just to hear you say. I drink too much. Would it ever change. Memory deranged. Someone says I need peace of mind. But I never even saw the sign. Love is such a crime. Love takes you looking for drugs. Life took me down don't know which way is. Why did you try shoot me down. Like a bullet in the head. Wrecking ball, knocking all on painted wall. When there's no one left around.'''
+          model=whisper.load_model('base.en')
+          result=model.transcribe(audio, language='en', fp16=False, temperature=0, word_timestamps=True, initial_prompt=prompt, condition_on_previous_text=True, verbose=False)
+          compact=[]
+          for s in result['segments']:
+              compact.append({
+                  'start':round(s['start'],2),'end':round(s['end'],2),'text':s['text'].strip(),
+                  'words':[{'start':round(w['start'],2),'end':round(w['end'],2),'word':w['word']} for w in s.get('words',[])]
+              })
+          with open('paradise-phrasing.json','w') as f: json.dump(compact,f,indent=2)
+          with open('paradise-phrasing.txt','w') as f:
+              for s in compact:
+                  f.write(f"{s['start']:7.2f} - {s['end']:7.2f}  {s['text']}\n")
+          print(open('paradise-phrasing.txt').read())
+          PY
+      - name: Upload phrasing analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auxnoise-Paradise-Phrasing
+          path: |
+            paradise-phrasing.json
+            paradise-phrasing.txt
+          if-no-files-found: error
