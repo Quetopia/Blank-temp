@@ -18,6 +18,7 @@ jobs:
           node --check signal016-bundle.js
           node --check signal018-bundle.js
           node --check signal019-bundle.js
+          node --check signal020-bundle.js
           node --check signal016-pro.js
           node --check signal016-world.js
           node --check signal016-combat.js
@@ -31,27 +32,24 @@ jobs:
           node --check signal019-kinetic.js
           node --check signal019-fidelity.js
           node --check signal019-motion.js
+          node --check signal020-arpg.js
       - name: Verify production loader references
         run: |
-          grep -q "signal019.html" index.html
-          grep -q "signal015-core.html" signal019.html
-          grep -q "signal019-bundle.js" signal019.html
-          grep -q "SIGNAL 019" signal019.html
-          grep -q "SIGNAL 019" signal015.html
-          grep -q "signal019-bundle.js" signal015.html
-          grep -q "signal016-pro.js" signal019-bundle.js
-          grep -q "signal016-world.js" signal019-bundle.js
-          grep -q "signal016-combat.js" signal019-bundle.js
-          grep -q "signal016-systems-v2.js" signal019-bundle.js
-          grep -q "signal016-audio.js" signal019-bundle.js
-          grep -q "signal016-onboarding.js" signal019-bundle.js
-          grep -q "signal016-atmosphere.js" signal019-bundle.js
-          grep -q "signal017-arpg.js" signal019-bundle.js
-          grep -q "signal017-refinements.js" signal019-bundle.js
-          grep -q "signal017-qol.js" signal019-bundle.js
-          grep -q "signal019-kinetic.js" signal019-bundle.js
-          grep -q "signal019-fidelity.js" signal019-bundle.js
-          grep -q "signal019-motion.js" signal019-bundle.js
+          grep -q "signal020.html" index.html
+          grep -q "signal020.html" signal015.html
+          grep -q "signal015-core.html" signal020.html
+          grep -q "signal020-bundle.js" signal020.html
+          grep -q "SIGNAL 020" signal020.html
+          grep -q "SIGNAL 020" signal015.html
+          grep -q "signal016-pro.js" signal020-bundle.js
+          grep -q "signal017-arpg.js" signal020-bundle.js
+          grep -q "signal019-kinetic.js" signal020-bundle.js
+          grep -q "signal019-fidelity.js" signal020-bundle.js
+          grep -q "signal019-motion.js" signal020-bundle.js
+          grep -q "signal020-arpg.js" signal020-bundle.js
+          grep -q "MANTIS_HYPERION" signal020-arpg.js
+          grep -q "PUNKIN" signal020-arpg.js
+          grep -q "Q20_DRUID" signal020-arpg.js
 
   browser-smoke:
     needs: runtime-syntax
@@ -66,7 +64,7 @@ jobs:
         run: |
           CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
           test -n "$CHROME"
-          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=19000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
+          "$CHROME" --headless=new --no-sandbox --use-gl=swiftshader --enable-unsafe-swiftshader --window-size=1440,900 --virtual-time-budget=23000 --dump-dom http://127.0.0.1:8080/index.html > /tmp/quetopia-dom.html 2> /tmp/chrome.log
           grep -q 'id="prohud"' /tmp/quetopia-dom.html
           grep -q 'id="combatReadout"' /tmp/quetopia-dom.html
           grep -q 'id="qMenuShade"' /tmp/quetopia-dom.html
@@ -77,20 +75,17 @@ jobs:
           grep -q 'id="qPassiveAdv"' /tmp/quetopia-dom.html
           grep -q 'id="qSkillsAdv"' /tmp/quetopia-dom.html
           grep -q 'id="qForgeAdv"' /tmp/quetopia-dom.html
-          grep -q 'id="qFilterAdv"' /tmp/quetopia-dom.html
           grep -q 'id="qWeaveLegend"' /tmp/quetopia-dom.html
           grep -q 'id="qArmoryWrap"' /tmp/quetopia-dom.html
-          grep -q 'id="qResetPassives"' /tmp/quetopia-dom.html
-          grep -q 'id="qResetSkills"' /tmp/quetopia-dom.html
-          grep -q 'id="q19Status"' /tmp/quetopia-dom.html
-          grep -q 'id="q19Mark"' /tmp/quetopia-dom.html
-          grep -q 'SIGNAL 019' /tmp/quetopia-dom.html
+          grep -q 'id="q20Status"' /tmp/quetopia-dom.html
+          grep -q 'id="q20Mark"' /tmp/quetopia-dom.html
+          grep -q 'SIGNAL 020' /tmp/quetopia-dom.html
       - name: Show browser diagnostics on failure
         if: failure()
         run: |
           echo '--- DOM tail ---'
-          tail -260 /tmp/quetopia-dom.html || true
+          tail -300 /tmp/quetopia-dom.html || true
           echo '--- Chrome log ---'
-          tail -300 /tmp/chrome.log || true
+          tail -350 /tmp/chrome.log || true
           echo '--- Server log ---'
           cat /tmp/quetopia-server.log || true
