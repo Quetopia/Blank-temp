@@ -25,7 +25,7 @@ html = html.replace(/https:\/\/raw\.githubusercontent\.com\/Quetopia\/Blank-temp
 // Include the known module order directly; deployment now pins one coherent version.
 const bundle = await fs.readFile(path.join(root, 'signal020-bundle.js'), 'utf8');
 const modules = [...bundle.match(/const modules=\[([^\]]+)\]/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
-modules.push('signal022-presentation.js');
+modules.push('signal022-presentation.js', 'signal023-performance.js');
 const tags = modules.map(file => `<script src="./${file}"></script>`).join('\n');
 html = html.replace(/<script>fetch\("\.\/signal020-bundle[\s\S]*?<\/script>/, tags);
 html = html.replace(/SIGNAL 020/g, 'SIGNAL 022');
