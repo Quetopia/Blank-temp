@@ -14,3 +14,19 @@ test('piercing spores hit two distinct creatures once each',()=>{const g=new Gro
 test('Punkin blessing restores life without exceeding maximum',()=>{const g=new Grove();g.setBlessing('bond');g.start();g.enemies=[];g.player.hp=239;g.spawn(g.cat.x,g.cat.y,false);g.step(1/60);assert.equal(g.player.hp,240);assert.ok(g.enemies[0].hp<70);});
 test('keyboard movement cancels click destination and normalizes diagonals',()=>{const a=new Grove(),b=new Grove();for(const g of[a,b]){g.start();g.enemies=[];g.target={x:250,y:250};}const origin={...a.player};a.step(.1,{direction:{x:1,y:0}});b.step(.1,{direction:{x:1,y:1}});assert.equal(a.target,null);assert.ok(Math.abs(Math.hypot(b.player.x-origin.x,b.player.y-origin.y)-22)<.001);assert.ok(Math.abs(a.player.x-origin.x-22)<.001);});
 test('fatal damage is terminal even if an attack remains in flight',()=>{const g=new Grove();g.start();g.enemies=[];g.spawn(g.player.x,g.player.y,false);const e=g.enemies[0];e.wind=.001;e.mark={...g.player};g.player.hp=1;g.cast('bolt',{x:1000,y:635});g.step(1/60);assert.equal(g.mode,'lost');assert.equal(g.player.hp,0);g.hurt(1);assert.equal(g.mode,'lost');});
+
+test('veil step slides through intermediate positions, ignores movement, then lands exactly',()=>{
+ const g=new Grove();g.start();g.enemies=[];const x=g.player.x,y=g.player.y;
+ assert.equal(g.cast('dash',{x:x+300,y}),true);assert.equal(g.player.x,x);
+ g.step(.07,{direction:{x:-1,y:1},move:{x:245,y:890}});
+ assert.ok(g.player.x>x&&g.player.x<x+155);assert.equal(g.player.y,y);
+ assert.equal(g.cast('nova',g.player),false);
+ for(let i=0;i<13;i++)g.step(1/60);
+ assert.equal(g.dash,null);assert.equal(g.player.x,x+155);assert.equal(g.player.y,y);
+});
+test('veil step duration is consistent across timesteps and reset clears it',()=>{
+ const a=new Grove(),b=new Grove();for(const g of [a,b]){g.start();g.enemies=[];g.cast('dash',{x:1100,y:450});}
+ for(let i=0;i<18;i++)a.step(1/60);for(let i=0;i<36;i++)b.step(1/120);
+ assert.ok(Math.hypot(a.player.x-b.player.x,a.player.y-b.player.y)<.001);
+ a.cd.dash=0;a.cast('dash',{x:500,y:500});a.reset();assert.equal(a.dash,null);
+});
