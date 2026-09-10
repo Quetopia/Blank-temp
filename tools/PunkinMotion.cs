@@ -11,9 +11,16 @@ public sealed class PunkinMotion : MonoBehaviour
     Vector3 velocity;
     bool paused;
     float phase;
+    bool captured;
 
     void Update()
     {
+        if (!captured && Time.time > 4)
+        {
+            captured=true;
+            ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(Application.dataPath,"../Punkin-runtime.png"));
+            Debug.Log("PUNKIN_RUNTIME_CAPTURE: animation=" + (walk != null && walk.isPlaying));
+        }
         float dt = Mathf.Min(Time.deltaTime, .05f);
         if (Input.GetKeyDown(KeyCode.Space)) paused = !paused;
         if (Input.GetKeyDown(KeyCode.Tab)) orbit = !orbit;
@@ -27,7 +34,7 @@ public sealed class PunkinMotion : MonoBehaviour
             if (requested.sqrMagnitude > 0) orbit = false;
             if (orbit)
             {
-                phase += dt * speed / 1.2f;
+                phase += dt * speed / .6f;
                 requested = new Vector3(Mathf.Cos(phase), 0, -Mathf.Sin(phase));
             }
         }
