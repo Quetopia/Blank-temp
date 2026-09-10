@@ -40,10 +40,17 @@ idle animation and more polished transitions remain future work.
 - Blender build exited 0; 24 bones; 9,164 body vertices; two-second walk.
 - All 12 upper/lower/ankle segments animate. IK endpoint error below 0.000001 model units.
 - Start/end bone rotations match within floating-point tolerance.
-- Unity initially rejected the 100x FBX scale. Explicit importer scale .01 corrected it.
+- Unity initially rejected the 100x FBX scale. An importer-only .01 workaround
+  failed during native playback. The final fix exports `FBX_SCALE_ALL` and uses
+  importer scale 1, validated on the sampled skinned mesh and native screenshot.
 - Unity import/scene build exited 0. All 12 imported leg segments move, with
   rotation ranges approximately 10–42 degrees over the walk.
 - Windows preview build exited 0.
+- Native preview launched and its screenshot was inspected. It shows the cat at
+  the correct size. The unanimated orientation parent protects floor placement
+  and forward-axis correction from imported animation curves.
+- Sampled lowest body vertices vary by .0105m over the loop after floor correction.
+  This numerical check does not substitute for approving a natural-looking gait.
 
 ## Remaining character work
 
