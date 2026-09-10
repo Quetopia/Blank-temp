@@ -31,6 +31,7 @@ public static class PunkinSceneBuilder
         if (importer == null) throw new Exception("Punkin FBX missing");
         importer.animationType = ModelImporterAnimationType.Legacy;
         importer.importAnimation = true;
+        importer.globalScale = .01f; // Blender FBX exports these mesh units as centimetres.
         importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
         var clips = importer.defaultClipAnimations;
         foreach (var c in clips) { c.name = "Punkin_Walk"; c.loopTime = true; c.wrapMode = WrapMode.Loop; }
