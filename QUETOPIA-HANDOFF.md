@@ -33,3 +33,6 @@ Development, repo saves and previews are authorized. Keep calls short. Report co
 - FBX correction: exporter apply_scale_options='FBX_SCALE_ALL', importer globalScale=1. Initial importer-only .01 fix failed at runtime. Native screenshot verified corrected size.
 - Placement uses baked animated vertices on a separate unanimated parent, not static renderer bounds. Lowest body point varies about .0105m over the cycle.
 - Source/model generation and preview are saved. Existing browser game was not replaced or redeployed. Next: assess gait visually, refine anatomy/textures/clothing toward punkin-reference.jpg, then idle/run blends and integration. Do not present the motion-study cat as finished art.
+
+## Full-game 3D integration checkpoint
+Punkin is now integrated into grove/game.mjs through punkin-3d.mjs and its bundle. The glTF asset and Three.js 0.180.0 are included. See grove/3D-INTEGRATION.md. Preview dpl_Cws7qf1y9jCJgHPuU9JomAu7o6Zr is READY. Existing 17 tests pass and Three.js asset sampling confirms 12 animated leg bones. Browser game starts, but cloud WebGL is disabled, so 3D graphics remain visually unverified there. Druid remains directional sprites. User requests token efficiency: short updates, one concrete increment at a time, no unnecessary research/repeated checks/agents.
