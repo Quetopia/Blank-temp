@@ -31,7 +31,7 @@ public static class PunkinSceneBuilder
         if (importer == null) throw new Exception("Punkin FBX missing");
         importer.animationType = ModelImporterAnimationType.Legacy;
         importer.importAnimation = true;
-        importer.globalScale = .01f; // Blender FBX exports these mesh units as centimetres.
+        importer.globalScale = 1f; // Exporter stores unit scale in FBX metadata.
         importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
         var clips = importer.defaultClipAnimations;
         foreach (var c in clips) { c.name = "Punkin_Walk"; c.loopTime = true; c.wrapMode = WrapMode.Loop; }
@@ -66,6 +66,10 @@ public static class PunkinSceneBuilder
         var joints=all.Where(t=>t.name.EndsWith(".upper") || t.name.EndsWith(".lower") || t.name.EndsWith(".ankle")).ToArray();
         if(joints.Length!=12) throw new Exception("Expected 12 articulated leg segments, got "+joints.Length);
         clip.SampleAnimation(cat,0);
+        Bounds animatedBounds=renderers[0].bounds;
+        foreach(var r in renderers) animatedBounds.Encapsulate(r.bounds);
+        if(animatedBounds.size.y<1 || animatedBounds.size.y>3)
+            throw new Exception("Animated FBX scale invalid: "+animatedBounds.size+" root scale="+cat.transform.localScale);
         var rest=joints.Select(t=>t.localRotation).ToArray();
         var changes=new float[joints.Length];
         for(int f=1;f<30;f++)
