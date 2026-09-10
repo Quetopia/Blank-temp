@@ -8,6 +8,21 @@ using UnityEngine.Rendering;
 
 public static class PunkinSceneBuilder
 {
+    public static void BuildPreview()
+    {
+        PlayerSettings.productName="Punkin Motion Study";
+        PlayerSettings.defaultScreenWidth=1280; PlayerSettings.defaultScreenHeight=800;
+        PlayerSettings.fullScreenMode=FullScreenMode.Windowed;
+        string output=Path.GetFullPath("../PunkinMotionPreview/PunkinMotion.exe");
+        Directory.CreateDirectory(Path.GetDirectoryName(output));
+        var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions {
+            scenes=new[]{"Assets/Scenes/PunkinMotion.unity"}, locationPathName=output,
+            target=BuildTarget.StandaloneWindows64, options=BuildOptions.Development });
+        if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            throw new Exception("Preview build failed: "+report.summary.result);
+        Debug.Log("PUNKIN_PREVIEW_PASS "+output);
+    }
+
     public static void Build()
     {
         const string path = "Assets/Punkin/Punkin.fbx";
