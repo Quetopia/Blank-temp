@@ -150,7 +150,6 @@ tailpts=[(0,-.67,1.12),(0,-.94,1.26),(0,-1.18,1.49),(0,-1.38,1.72),(0,-1.57,1.78
 for i in range(5):
     n='tail.'+str(i)
     bones.append((n,tailpts[i],tailpts[i+1],'spine' if i==0 else 'tail.'+str(i-1)))
-    linkmesh(n,tailpts[i],tailpts[i+1],.087-i*.008,.087-i*.008,fur if i%2==0 else stripe,n)
 
 arm=bpy.data.armatures.new('Punkin skeleton')
 rig=bpy.data.objects.new('Punkin',arm); bpy.context.collection.objects.link(rig)
@@ -189,6 +188,29 @@ for v in skin.data.vertices:
 bind(skin,weights)
 for o,n in details:
     bind(o,{n:[(v.index,1) for v in o.data.vertices]})
+
+# A single tapered tail skin spans the chain, avoiding bead-like joint gaps.
+tv=[]; tf=[]; tw={f'tail.{i}':[] for i in range(5)}
+for j in range(26):
+    t=j/5; seg=min(4,int(t)); u=t-seg
+    a,b=Vector(tailpts[seg]),Vector(tailpts[seg+1])
+    center=a.lerp(b,u); tangent=(b-a).normalized()
+    across=Vector((1,0,0)); other=tangent.cross(across).normalized()
+    radius=.089*(1-.78*j/25)
+    for k in range(16):
+        angle=k*math.tau/16
+        tv.append(center+radius*(math.cos(angle)*across+math.sin(angle)*other))
+        # Blend the final half of each span into the following tail bone.
+        blend=max(0,(u-.5)*2) if seg<4 else 0
+        tw[f'tail.{seg}'].append((j*16+k,1-blend))
+        if blend: tw[f'tail.{seg+1}'].append((j*16+k,blend))
+        if j<25: tf.append((j*16+k,j*16+(k+1)%16,(j+1)*16+(k+1)%16,(j+1)*16+k))
+tf += [tuple(reversed(range(16))),tuple(range(400,416))]
+tm=bpy.data.meshes.new('Continuous tail skin'); tm.from_pydata(tv,[],tf)
+tail=bpy.data.objects.new('Punkin tapered tail',tm); bpy.context.collection.objects.link(tail)
+tm.materials.append(fur); tm.materials.append(stripe)
+for p in tm.polygons: p.use_smooth=True; p.material_index=1 if (p.index//16)%5==2 else 0
+bind(tail,tw)
 
 targets=[]
 for n,foot,kind,side in legs:
@@ -247,6 +269,7 @@ print('PUNKIN_GAIT_CHECK',json.dumps(report),flush=True)
 scene.frame_set(1)
 bpy.ops.object.select_all(action='DESELECT')
 rig.select_set(True); skin.select_set(True)
+tail.select_set(True)
 for o,n in details: o.select_set(True)
 bpy.context.view_layer.objects.active=rig
 bpy.ops.export_scene.fbx(filepath=os.path.join(OUT,'Punkin.fbx'),use_selection=True,
@@ -268,7 +291,9 @@ cam.rotation_euler=(Vector((0,-.1,1))-cam.location).to_track_quat('-Z','Y').to_e
 cam.data.type='ORTHO'; cam.data.ortho_scale=3.65; scene.camera=cam
 scene.render.engine='CYCLES'; scene.cycles.samples=16
 scene.render.resolution_x=900; scene.render.resolution_y=900; scene.render.resolution_percentage=100
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT,'Punkin.blend'))
+source_dir=os.path.join(os.path.dirname(os.path.dirname(OUT)),'SourceArt')
+os.makedirs(source_dir,exist_ok=True)
+bpy.ops.wm.save_as_mainfile(filepath=os.path.join(source_dir,'Punkin.blend'))
 scene.frame_set(12); scene.render.filepath=os.path.join(OUT,'Punkin-preview.png')
 bpy.ops.render.render(write_still=True)
 print('PUNKIN_BUILD_COMPLETE',OUT,flush=True)
