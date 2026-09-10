@@ -6,7 +6,7 @@ Continue the existing project; do not restart the game.
 - Repository: Quetopia/Blank-temp; branch work/quetopia-recovery; draft PR #1.
 - Existing browser game and preserved artwork: grove/.
 - Browser animation checkpoint: 6aad6c9574efd2db42cf3c1089401f4d3f3073b9; 17 logic checks passed. User rejected paw deformation and abrupt four-view turning.
-- Next deliverable: a separate Unity Punkin motion test with a properly rigged cat, complete leg articulation, natural walking, and continuous turning. No usable rigged cat model acquired yet. Do not label a primitive or sprite deformation as completed character animation.
+- A separate native Unity Punkin motion prototype now exists: original skinned cat, 24 bones, whole-leg four-beat walk, continuous steering. This is first stylized prototype art, not the finished reference-quality cat. Natural gait and visual polish still need review.
 - Preserve the druid/cat artwork, existing game, and ghost-slide design.
 
 ## PC and verified startup repair
@@ -22,3 +22,14 @@ Continue the existing project; do not restart the game.
 
 ## Workflow
 Development, repo saves and previews are authorized. Keep calls short. Report completed results; do not interpret an elapsed tool timer as development. Prior sessions had long transport hangs. Update this handoff after each saved milestone. A blank Unity project is not a completed animation scene.
+
+## Saved 3D cat milestone
+- Reproducible sources: tools/build_punkin.py, tools/PunkinMotion.cs, tools/PunkinSceneBuilder.cs. Full instructions and limitations: tools/PUNKIN-MOTION-STUDY.md.
+- PC editable source: PunkinMotionLab\SourceArt\Punkin.blend. Keep outside Assets to avoid Unity launching Blender automatically during import.
+- PC exported character: PunkinMotionLab\Assets\Punkin\Punkin.fbx. Native scene: Assets\Scenes\PunkinMotion.unity.
+- PC preview: C:\Users\Punto\OneDrive\Documents\Quetopia\PunkinMotionPreview\PunkinMotion.exe. Built successfully, launched and runtime screenshot inspected. Last launched PID 23304 (do not assume still alive later).
+- Preview controls: WASD/arrows steer, Space pauses, Tab toggles circle walking. Idle currently freezes walk; no dedicated idle/run blend yet.
+- Blender and independent Unity sampling checks confirm all 12 upper/lower/ankle segments move. Two-second loop, matching endpoints; imported rotation ranges about 10–42 degrees.
+- FBX correction: exporter apply_scale_options='FBX_SCALE_ALL', importer globalScale=1. Initial importer-only .01 fix failed at runtime. Native screenshot verified corrected size.
+- Placement uses baked animated vertices on a separate unanimated parent, not static renderer bounds. Lowest body point varies about .0105m over the cycle.
+- Source/model generation and preview are saved. Existing browser game was not replaced or redeployed. Next: assess gait visually, refine anatomy/textures/clothing toward punkin-reference.jpg, then idle/run blends and integration. Do not present the motion-study cat as finished art.
