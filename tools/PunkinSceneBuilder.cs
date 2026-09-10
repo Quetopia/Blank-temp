@@ -8,6 +8,24 @@ using UnityEngine.Rendering;
 
 public static class PunkinSceneBuilder
 {
+    static Bounds DeformedBounds(GameObject cat)
+    {
+        Bounds result=new Bounds(); bool first=true;
+        foreach(var r in cat.GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            var mesh=new Mesh(); r.BakeMesh(mesh);
+            foreach(var v in mesh.vertices)
+            {
+                var p=r.transform.TransformPoint(v);
+                if(first) { result=new Bounds(p,Vector3.zero); first=false; }
+                else result.Encapsulate(p);
+            }
+            UnityEngine.Object.DestroyImmediate(mesh);
+        }
+        if(first) throw new Exception("No skinned vertices to validate");
+        return result;
+    }
+
     public static void BuildPreview()
     {
         PlayerSettings.productName="Punkin Motion Study";
@@ -43,20 +61,21 @@ public static class PunkinSceneBuilder
         if (source == null || animationClips.Length == 0) throw new Exception("FBX model/animation import failed");
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         var heading = new GameObject("Punkin smooth heading");
+        var orientation = new GameObject("Unanimated model orientation").transform;
+        orientation.SetParent(heading.transform,false);
         var cat = (GameObject)PrefabUtility.InstantiatePrefab(source);
-        cat.transform.SetParent(heading.transform, false);
+        cat.transform.SetParent(orientation, false);
         // Verify the imported skeleton and calculate its actual forward axis.
         var all = cat.GetComponentsInChildren<Transform>();
         var head = all.First(t => t.name == "head");
         var spine = all.First(t => t.name == "spine");
         Vector3 forward = head.position - spine.position; forward.y=0;
         if (forward.sqrMagnitude > .001f)
-            cat.transform.rotation = Quaternion.FromToRotation(forward.normalized, Vector3.forward);
+            orientation.rotation = Quaternion.FromToRotation(forward.normalized, Vector3.forward);
         var renderers = cat.GetComponentsInChildren<Renderer>();
         Bounds bounds = renderers[0].bounds;
         foreach (var r in renderers) bounds.Encapsulate(r.bounds);
         if (bounds.size.y < .1f || bounds.size.y > 10) throw new Exception("Unexpected FBX scale: " + bounds.size);
-        cat.transform.position -= Vector3.up * bounds.min.y;
         var anim = cat.GetComponent<Animation>() ?? cat.AddComponent<Animation>();
         var clip = animationClips[0];
         clip.wrapMode = WrapMode.Loop;
@@ -66,19 +85,23 @@ public static class PunkinSceneBuilder
         var joints=all.Where(t=>t.name.EndsWith(".upper") || t.name.EndsWith(".lower") || t.name.EndsWith(".ankle")).ToArray();
         if(joints.Length!=12) throw new Exception("Expected 12 articulated leg segments, got "+joints.Length);
         clip.SampleAnimation(cat,0);
-        Bounds animatedBounds=renderers[0].bounds;
-        foreach(var r in renderers) animatedBounds.Encapsulate(r.bounds);
+        Bounds animatedBounds=DeformedBounds(cat);
         if(animatedBounds.size.y<1 || animatedBounds.size.y>3)
             throw new Exception("Animated FBX scale invalid: "+animatedBounds.size+" root scale="+cat.transform.localScale);
         var rest=joints.Select(t=>t.localRotation).ToArray();
         var changes=new float[joints.Length];
+        float lowest=animatedBounds.min.y, highestFloor=lowest;
         for(int f=1;f<30;f++)
         {
             clip.SampleAnimation(cat,clip.length*f/30f);
+            var ground=DeformedBounds(cat).min.y;
+            lowest=Mathf.Min(lowest,ground); highestFloor=Mathf.Max(highestFloor,ground);
             for(int i=0;i<joints.Length;i++) changes[i]=Mathf.Max(changes[i],Quaternion.Angle(rest[i],joints[i].localRotation));
         }
         if(changes.Any(a=>a<1)) throw new Exception("Imported leg segment does not animate: "+string.Join(",",changes));
         clip.SampleAnimation(cat,0);
+        orientation.position -= Vector3.up * lowest;
+        Debug.Log("PUNKIN_GROUND_RANGE: "+lowest+" to "+highestFloor+"; corrected on unanimated parent");
         var floor=GameObject.CreatePrimitive(PrimitiveType.Plane); floor.name="Motion inspection floor";
         floor.transform.localScale=Vector3.one*2;
         var material=new Material(Shader.Find("Standard")); material.color=new Color(.065f,.095f,.09f);
