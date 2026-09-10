@@ -274,6 +274,7 @@ for o,n in details: o.select_set(True)
 bpy.context.view_layer.objects.active=rig
 bpy.ops.export_scene.fbx(filepath=os.path.join(OUT,'Punkin.fbx'),use_selection=True,
     object_types={'ARMATURE','MESH'},add_leaf_bones=False,bake_anim=True,
+    apply_scale_options='FBX_SCALE_ALL',apply_unit_scale=True,
     bake_anim_use_all_actions=False,bake_anim_use_nla_strips=False,
     bake_anim_simplify_factor=0,axis_forward='-Z',axis_up='Y')
 
