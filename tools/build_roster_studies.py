@@ -272,8 +272,8 @@ def finish(slug,label,source):
             bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o;bpy.ops.object.convert(target='MESH')
     # Consolidate draw objects by material. No geometry reduction or false game-ready claim.
     grouped=[]
-    for mat in M.values():
-        batch=[o for o in parts if o.type=='MESH' and o.data.materials and o.data.materials[0]==mat]
+    batches=[(mat,[o for o in parts if o.type=='MESH' and o.data.materials and o.data.materials[0]==mat]) for mat in M.values()]
+    for mat,batch in batches:
         if not batch:continue
         bpy.ops.object.select_all(action='DESELECT')
         for o in batch:o.select_set(True)
@@ -304,11 +304,15 @@ def finish(slug,label,source):
     bpy.ops.wm.save_as_mainfile(filepath=str(dest/(slug+'.blend')));print('SAVED '+slug,flush=True)
     bpy.ops.render.render(write_still=True);print('RENDERED '+slug,flush=True)
     return stats
-results=[]
+results=[]; failures=[]
 for slug,label,fn,source in MODELS:
     if len(args)>1 and slug not in args[1:]:continue
     try:
         reset();fn();results.append(finish(slug,label,source));(OUT/'batch-checkpoint.json').write_text(json.dumps(results,indent=2))
     except Exception as e:
+        failures.append({'slug':slug,'error':str(e)})
         traceback.print_exc();print('FAILED '+slug+': '+str(e),flush=True)
 print('BATCH_COMPLETE '+str(len(results)),flush=True)
+if failures:
+    (OUT/'batch-errors.json').write_text(json.dumps(failures,indent=2))
+    sys.exit(1)
