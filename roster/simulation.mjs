@@ -34,7 +34,7 @@ export class Grove extends Base {
  if(id==='roots'){this.recover(50);for(const e of this.enemies)if(distance(p,e)<200){const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy)||1;e.x+=dx/d*80;e.y+=dy/d*80;constrain(e);e.root=1;}this.event('nova',p,{r:200});}
  if(id==='heal'){for(const z of this.zones)this.area(z,180,145);this.zones=[];this.area(aim,210,115);}
  }else if(c==='cyberdine'){
- if(id==='bolt'){const target=this.enemies.find(e=>!e.dead&&e.fray>0&&distance(aim,e)<85);this.projectile(aim,target?70:38,0,1,1);}
+ if(id==='bolt'){this.projectile(aim,38,0,1,1);this.shots[this.shots.length-1].frayBonus=true;}
  if(id==='nova'){for(const e of this.enemies)if(distance(aim,e)<180)e.fray=5;this.area(aim,180,30,2);}
  if(id==='roots'){this.recover(75);for(const e of this.enemies)if(e.fray>0)this.damage(e,35*this.power);}
  if(id==='heal')this.area(aim,230,100,0,e=>e.fray>0?2:1);
