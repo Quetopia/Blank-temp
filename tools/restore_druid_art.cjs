@@ -1,0 +1,13 @@
+const fs=require('node:fs'),path=require('node:path');
+const root=process.argv[2];if(!root)throw new Error('Pass the Quetopia repository folder');
+const file=path.join(root,'grove','game.mjs');
+const source=fs.readFileSync(file,'utf8');
+const lines=source.split('\n'),matches=lines.filter(l=>l.includes('createDruidRenderer'));
+if(matches.length!==1)throw new Error('Expected one prototype druid loader; no files changed');
+if(!source.includes('row:0,h:165'))throw new Error('Original druid scale not found; no files changed');
+const result=source.replace(matches[0],' // Approved detailed druid artwork: retain the 165px sprite until a matching 3D model is approved.');
+const backup=file+'.before-art-restore-'+Date.now();
+fs.copyFileSync(file,backup);
+fs.writeFileSync(file,result,'utf8');
+console.log('RESTORED_DETAILED_DRUID scale=165; 3D Punkin and wand charge/release logic retained');
+console.log('BACKUP='+backup);
