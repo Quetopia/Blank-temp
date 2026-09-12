@@ -1,11 +1,9 @@
-Original Quetopia references captured from authenticated @quetopia3 TikTok Studio links on September 12, 2026. These are browser frame captures with some player overlays, for reference rather than finished portrait assets.
+# Original Quetopia artwork
 
-Diamond Girl: https://www.tiktok.com/@quetopia3/video/7673959393678920991
+Seven clean original cover images recovered through the authenticated @quetopia3 TikTok Studio and its linked posts on September 12, 2026. Downloaded from the exact image URLs exposed in each post's DOM. No image generation, retouching, or TikTok player overlays. See sources.json for durable post URLs.
 
-Moon Groove: https://www.tiktok.com/@quetopia3/video/7678226230482685214
+Character selection uses the original covers for Diamond Girl, Crescent Weaver, Ember Sovereign, Sally, and Cyberdine. Abyssal Cantor displays Reef Lobster with an explicit companion-art caption; there is no recovered separate Cantor portrait. The companion HUD also uses Suneye and Reef Lobster originals. Druid and Punkin retain their existing original art.
 
-User requires original TikTok character identity and detail. Do not replace with generic generated characters. These images have not yet been integrated into the playable version.
+These changes improve portraits only. The new playable 3D models still need faithful reconstruction, rigging, and animation. Do not describe this portrait release as a completed 3D quality upgrade.
 
-Ember Sovereign: https://www.tiktok.com/@quetopia3/video/7683522615893363998
-
-`ember-sovereign-original.jpg` is the original unobstructed TikTok cover downloaded from the image CDN URL exposed by the authenticated browser on September 12, 2026. It is now used in character selection. This is a portrait upgrade, not a replacement or quality claim for the playable 3D model. The other two captures remain reference-only.
+The older *-reference.jpg screenshots are preserved as additional frame references; they contain player overlays and are not used in the game.

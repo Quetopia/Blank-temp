@@ -2,3 +2,5 @@
 
 /* Let long character names wrap without widening the seven-column roster. */
 #rosterGrid button{min-width:0;white-space:normal}#rosterGrid strong,#rosterGrid small{overflow-wrap:anywhere;line-height:1.35}#heroDetail>*{min-width:0}
+
+#heroFigure{margin:0}#heroArt{display:block;width:100%;height:auto;max-height:370px;object-fit:contain;border:1px solid #c8a66d55;border-radius:3px}#artCaption{margin-top:9px;color:#b9aec2;font-size:11px;line-height:1.5}#rosterGrid img{object-position:center 40%}#rosterGrid button[data-character="diamond-girl"] img{object-position:center 65%}#rosterGrid button[data-character="crescent-weaver"] img{object-position:center 45%}@media(max-width:600px){#heroDetail{grid-template-columns:100px minmax(0,1fr);gap:12px}#rosterGrid{grid-template-columns:repeat(2,minmax(0,1fr))}#rosterGrid img{height:120px}}
