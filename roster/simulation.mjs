@@ -1,4 +1,4 @@
-import {Grove as Base,SKILLS as BASE_SKILLS,distance,constrain} from './base-simulation.mjs';
+import {Grove as Base,SKILLS as BASE_SKILLS,distance} from './base-simulation.mjs';
 import {byId,kitFor} from './roster.mjs';
 export {W,H,WAND_CHARGE,BLESSINGS,distance} from './base-simulation.mjs';
 export const SKILLS={...BASE_SKILLS};
@@ -30,8 +30,8 @@ export class Grove extends Base {
  if(id==='heal'){this.heat-=40;this.area(p,350,190);}
  }else if(c==='sally'){
  if(id==='bolt')this.projectile(aim,17,.16,3);
- if(id==='nova'){if(this.zones.length>=3){const z=this.zones.shift();this.area(z,145,100);}this.zones.push({...constrain({...aim}),life:2.5,kind:'bomb'});}
- if(id==='roots'){this.recover(50);for(const e of this.enemies)if(distance(p,e)<200){const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy)||1;e.x+=dx/d*80;e.y+=dy/d*80;constrain(e);e.root=1;}this.event('nova',p,{r:200});}
+ if(id==='nova'){if(this.zones.length>=3){const z=this.zones.shift();this.area(z,145,100);}this.zones.push({...this.constrain({...aim}),life:2.5,kind:'bomb'});}
+ if(id==='roots'){this.recover(50);for(const e of this.enemies)if(distance(p,e)<200){const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy)||1;e.x+=dx/d*80;e.y+=dy/d*80;this.constrain(e);e.root=1;}this.event('nova',p,{r:200});}
  if(id==='heal'){for(const z of this.zones)this.area(z,180,145);this.zones=[];this.area(aim,210,115);}
  }else if(c==='cyberdine'){
  if(id==='bolt'){this.projectile(aim,38,0,1,1);this.shots[this.shots.length-1].frayBonus=true;}
@@ -40,7 +40,7 @@ export class Grove extends Base {
  if(id==='heal')this.area(aim,230,100,0,e=>e.fray>0?2:1);
  }else if(c==='abyssal-cantor'){
  if(id==='bolt')this.projectile(aim,20,.23,3);
- if(id==='nova'){if(this.zones.length>=2)this.zones.shift();this.zones.push({...constrain({...aim}),life:5,tick:0,kind:'pool'});}
+ if(id==='nova'){if(this.zones.length>=2)this.zones.shift();this.zones.push({...this.constrain({...aim}),life:5,tick:0,kind:'pool'});}
  if(id==='roots')this.recover(65,1);
  if(id==='heal')this.area(p,330,110,0,e=>e.soaked>0?2:1);
  }

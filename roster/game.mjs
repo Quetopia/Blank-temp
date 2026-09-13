@@ -1,3 +1,5 @@
+import {cameraFor} from './worlds.mjs';
+import {drawWorld,drawMinimap} from './world-render.mjs';
 import {setupCampaign} from './campaign-ui.mjs';
 import {ROSTER,byId,IDS} from './roster.mjs';
 import {Grove,W,H,WAND_CHARGE,SKILLS,BLESSINGS,distance} from './campaign.mjs';
@@ -7,6 +9,7 @@ const saveKey='quetopia.grove.progress.v1';
 let progress={wins:0,blessing:null},storageAvailable=true;
 try{const saved=JSON.parse(localStorage.getItem(saveKey)||'null');if(saved&&Number.isSafeInteger(saved.wins)&&saved.wins>=0)progress={wins:saved.wins,blessing:Object.hasOwn(BLESSINGS,saved.blessing)?saved.blessing:null};}catch{storageAvailable=false;}
 function saveProgress(){try{localStorage.setItem(saveKey,JSON.stringify(progress));}catch{storageAvailable=false;}}
+const camera={x:0,y:0};let pointer=null;
 const game=new Grove(),input={aim:{x:780,y:390},fire:false,move:null};
 let ground,atlas,sprites=[],vw=innerWidth,vh=innerHeight,scale=1,ox=0,oy=0,paused=false,loaded=false,clock=0,acc=0,last=0,frames=0,fpsStart=0,noticeUntil=0,uiAt=0,shake=0,sound=false,audio,volume,fx=[],numbers=[],lastPos={x:760,y:635};
 game.wandDriven=true;
@@ -19,7 +22,7 @@ function resize(){vw=innerWidth;vh=innerHeight;const dpr=Math.min(devicePixelRat
 addEventListener('resize',resize);resize();
 const loadImage=src=>new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error(`Could not load ${src}`));i.src=src;});
 function spriteCells(img){const cuts=[0,.278,.501,.716,1];for(let row=0;row<4;row++){sprites[row]=[];for(let col=0;col<4;col++){let x=Math.round(img.width*col/4),y=Math.round(img.height*cuts[row]),w=Math.floor(img.width/4),h=Math.floor(img.height*(cuts[row+1]-cuts[row]));sprites[row].push({x,y,w,h});}}}
-function toWorld(e){return {x:(e.clientX-ox)/scale,y:(e.clientY-oy)/scale};}
+function toWorld(e){pointer={x:e.clientX,y:e.clientY};return {x:(e.clientX-ox)/scale+camera.x,y:(e.clientY-oy)/scale+camera.y};}
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{if(game.mode!=='playing'||paused)return;canvas.focus();input.aim=toWorld(e);canvas.setPointerCapture(e.pointerId);if(e.button===2||e.shiftKey){input.fire=true;}else{input.move=toWorld(e);game.target={...input.move};burst('move',input.move,35,.6);}});
 canvas.addEventListener('pointermove',e=>{input.aim=toWorld(e);if(e.buttons===1&&!e.shiftKey)input.move=toWorld(e);});
@@ -36,7 +39,7 @@ $('#resume').onclick=()=>setPause(false);
 $('#quality').onclick=()=>{quality=quality===1?.7:1;$('#quality').textContent=quality===1?'Detail: high':'Detail: light';resize();};
 $('#attune').onclick=()=>{if(!paused)game.attune();};
 for(const [id,b]of buttonMap)b.onclick=()=>{if(!paused)game.cast(id,input.aim);};
-function start(){if(!loaded||selecting)return;actors?.reset();druid3d?.reset(game.player);previousPositions=new WeakMap();punkin3d?.reset(game.cat);clearInput();game.setBlessing(progress.blessing);game.start();setPause(false);winRecorded=false;$('#menu').hidden=true;$('#end').hidden=true;$('#hud').style.opacity=1;canvas.focus();last=performance.now();acc=0;}
+function start(){if(!loaded||selecting)return;Object.assign(camera,game.world?cameraFor(game.player,game.world):{x:0,y:0});actors?.reset();druid3d?.reset(game.player);previousPositions=new WeakMap();punkin3d?.reset(game.cat);clearInput();game.setBlessing(progress.blessing);game.start();setPause(false);winRecorded=false;$('#menu').hidden=true;$('#end').hidden=true;$('#hud').style.opacity=1;canvas.focus();last=performance.now();acc=0;}
 $('#start').onclick=start;
 $('#restart').onclick=()=>{game.reset();fx=[];numbers=[];ghosts=[];lastCat={x:game.cat.x,y:game.cat.y};start();};
 $('#sound').onclick=()=>{sound=!sound;$('#sound').textContent=sound?'Sound on':'Sound off';if(sound){audio??=new AudioContext();if(!volume){volume=audio.createGain();volume.gain.value=.08;volume.connect(audio.destination);}audio.resume();tone(180,.3,'sine');}};
@@ -94,7 +97,7 @@ function drawGhosts(){if(game.character!=='druid'){for(const g of ghosts){ctx.sa
  }
 }
 
-function draw(dt){renderDt=dt;ctx.fillStyle='#080b11';ctx.fillRect(0,0,vw,vh);if(!ground)return;ctx.save();ctx.translate(ox+(shake?Math.sin(clock*75)*shake:0),oy);ctx.scale(scale,scale);if(!groundCache){groundCache=document.createElement('canvas');groundCache.width=Math.ceil(W*scale);groundCache.height=Math.ceil(H*scale);groundCache.getContext('2d').drawImage(ground,0,0,groundCache.width,groundCache.height);}ctx.drawImage(groundCache,0,0,W,H);if(game.chapter){ctx.save();ctx.fillStyle=game.chapter.color;ctx.globalAlpha=.12;ctx.fillRect(0,0,W,H);ctx.restore();}
+function draw(dt){renderDt=dt;ctx.fillStyle='#080b11';ctx.fillRect(0,0,vw,vh);if(!ground)return;const desired=game.world?cameraFor(game.player,game.world):{x:0,y:0};const follow=1-Math.exp(-10*dt);camera.x+=(desired.x-camera.x)*follow;camera.y+=(desired.y-camera.y)*follow;ctx.save();ctx.translate(ox+(shake?Math.sin(clock*75)*shake:0),oy);ctx.scale(scale,scale);ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();ctx.translate(-camera.x,-camera.y);if(game.world){drawWorld(ctx,game.world,camera,clock);}else{if(!groundCache){groundCache=document.createElement('canvas');groundCache.width=Math.ceil(W*scale);groundCache.height=Math.ceil(H*scale);groundCache.getContext('2d').drawImage(ground,0,0,groundCache.width,groundCache.height);}ctx.drawImage(groundCache,0,0,W,H);}
  // Ground-level rings are drawn before sprites; telegraphs remain readable.
  for(let i=0;i<game.anchors.length;i++){const a=game.anchors[i],near=distance(a,game.player)<105;ellipse(a.x,a.y,42,a.on?'#c5a7f0':'#bda673',a.on?3:1,a.on?.85:.45);if(a.on){ellipse(a.x,a.y,49,'#9875d0',1,.5+Math.sin(clock*2+i)*.2);ctx.fillStyle='#d4baff';for(let k=0;k<6;k++){let t=clock*.6+k*Math.PI/3;ctx.fillRect(a.x+Math.cos(t)*35,a.y+Math.sin(t)*20-15-Math.sin(clock+k)*10,2,3);}}else if(near){ctx.fillStyle='#eee1bb';ctx.font='12px Georgia';ctx.textAlign='center';ctx.fillText('F · ATTUNE',a.x,a.y-55);}}
  for(const f of fx){const p=f.t/f.life,c=colors[f.kind]||'#ba9ade';if(f.kind==='telegraph'){ctx.fillStyle=`rgba(184,44,40,${.1+p*.18})`;ctx.beginPath();ctx.ellipse(f.x,f.y,f.r,f.r*.8,0,0,Math.PI*2);ctx.fill();ellipse(f.x,f.y,f.r,c,2,.85);ellipse(f.x,f.y,f.r*p,c,2,.85);}else if(['nova','roots','heal','anchor','dash','move','strike'].includes(f.kind)){ellipse(f.x,f.y,f.r*(f.kind==='roots'?1:p),c,f.kind==='nova'?4:2,1-p);if(f.kind==='nova'||f.kind==='anchor')ellipse(f.x,f.y,f.r*p*.85,'#f9e6ff',1,1-p);}}
@@ -116,7 +119,7 @@ function draw(dt){renderDt=dt;ctx.fillStyle='#080b11';ctx.fillRect(0,0,vw,vh);if
  ctx.textAlign='center';ctx.font='bold 16px Georgia';for(const n of numbers){ctx.globalAlpha=1-n.t/.8;ctx.strokeStyle='#17121c';ctx.lineWidth=3;ctx.strokeText(n.n,n.x,n.y-n.t*45);ctx.fillStyle='#f3e3b6';ctx.fillText(n.n,n.x,n.y-n.t*45);}ctx.globalAlpha=1;
  // A small fixed number of ambient motes, independent of enemies and combat.
  ctx.fillStyle='#b9b5e1';for(let i=0;i<32;i++){let x=(i*313+Math.sin(clock*.16+i)*24)%W,y=(i*173-clock*(5+i%4))%H;if(y<0)y+=H;ctx.globalAlpha=.13+.18*(.5+.5*Math.sin(clock+i));ctx.fillRect(x,y,2,2);}ctx.globalAlpha=1;
- ctx.restore();}
+ ctx.restore();if(game.world)drawMinimap(ctx,game.world,game.player,game.anchors,game.bossSpawned,vw);}
 function drawWandCharge(){
  if(game.mode!=='playing'||(!game.pendingBolt&&game.wandFlash<=0))return;
  const m=game.muzzle;if(!m)return;
@@ -139,7 +142,7 @@ function hud(){$('#resourceState').textContent=game.character==='ember-sovereign
  if(clock>noticeUntil)$('#notice').classList.remove('visible');if(!paused)$('#interact').textContent=game.anchors.some(a=>!a.on&&distance(a,p)<105)?'Press F or tap Attune to release this memory':'';$('#attune').hidden=paused||game.mode!=='playing'||!game.anchors.some(a=>!a.on&&distance(a,p)<105);
  if((game.mode==='won'||game.mode==='lost')&&$('#end').hidden){$('#end').hidden=false;$('#endTitle').innerHTML=game.mode==='won'?'The veil<br><em>opens.</em>':'The roots<br><em>remember.</em>';$('#endLabel').textContent=game.mode==='won'?'THE GROVE IS YOURS':game.spec.pet.toUpperCase()+' WILL FIND YOU AGAIN';$('#endStats').textContent=`${game.kills} creatures defeated · ${game.encounter} seals awakened · ${game.relics} fragments found`;clearInput();if(game.mode==='won'&&!winRecorded){progress.wins++;winRecorded=true;saveProgress();}$('#rewards').hidden=game.mode!=='won';updateProgress();campaignUI.onEnd();}
 }
-function frame(now){requestAnimationFrame(frame);if(document.hidden){last=now;return;}const dt=Math.min((now-last)/1000||0,.05);last=now;if(!paused){clock+=dt;acc+=dt;let steps=0;while(acc>=1/60&&steps++<4){for(const actor of [game.player,game.cat,...game.enemies])previousPositions.set(actor,{x:actor.x,y:actor.y});const before={...game.player},wasDashing=!!game.dash;game.step(1/60,{...input,direction:{x:Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft')),y:Number(keys.has('ArrowDown'))-Number(keys.has('ArrowUp'))},fire:input.fire||keys.has('KeyQ')});ghosts=dashGhosts(ghosts,before,game.player,wasDashing,1/60);acc-=1/60;}events();for(const f of fx)f.t+=dt;fx=fx.filter(f=>f.t<f.life);for(const n of numbers)n.t+=dt;numbers=numbers.filter(n=>n.t<.8);shake=Math.max(0,shake-dt*25);}catMoving=Math.hypot(game.cat.x-lastCat.x,game.cat.y-lastCat.y)>.01;lastCat={x:game.cat.x,y:game.cat.y};draw(dt);if(now-uiAt>100){hud();uiAt=now;}frames++;if(now-fpsStart>=1000){$('#performance').textContent=`${Math.round(frames*1000/(now-fpsStart))} FPS · ${game.character==='druid'?'Druid & Punkin':actors?'3D roster':'portrait fallback'}`;fpsStart=now;frames=0;}}
+function frame(now){requestAnimationFrame(frame);if(pointer)input.aim={x:(pointer.x-ox)/scale+camera.x,y:(pointer.y-oy)/scale+camera.y};if(document.hidden){last=now;return;}const dt=Math.min((now-last)/1000||0,.05);last=now;if(!paused){clock+=dt;acc+=dt;let steps=0;while(acc>=1/60&&steps++<4){for(const actor of [game.player,game.cat,...game.enemies])previousPositions.set(actor,{x:actor.x,y:actor.y});const before={...game.player},wasDashing=!!game.dash;game.step(1/60,{...input,direction:{x:Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft')),y:Number(keys.has('ArrowDown'))-Number(keys.has('ArrowUp'))},fire:input.fire||keys.has('KeyQ')});ghosts=dashGhosts(ghosts,before,game.player,wasDashing,1/60);acc-=1/60;}events();for(const f of fx)f.t+=dt;fx=fx.filter(f=>f.t<f.life);for(const n of numbers)n.t+=dt;numbers=numbers.filter(n=>n.t<.8);shake=Math.max(0,shake-dt*25);}catMoving=Math.hypot(game.cat.x-lastCat.x,game.cat.y-lastCat.y)>.01;lastCat={x:game.cat.x,y:game.cat.y};draw(dt);if(now-uiAt>100){hud();uiAt=now;}frames++;if(now-fpsStart>=1000){$('#performance').textContent=`${Math.round(frames*1000/(now-fpsStart))} FPS · ${game.character==='druid'?'Druid & Punkin':actors?'3D roster':'portrait fallback'}`;fpsStart=now;frames=0;}}
 function updateProgress(){$('#journey').textContent=progress.wins?`${progress.wins} grove${progress.wins===1?'':'s'} restored · ${BLESSINGS[progress.blessing]?.name||'Choose a blessing after victory'}`:'Your first journey beyond the veil';$('#saveStatus').textContent=storageAvailable?'Your blessing is saved on this browser.':'Browser saving unavailable; your blessing lasts this session.';for(const b of document.querySelectorAll('[data-blessing]'))b.setAttribute('aria-pressed',String(b.dataset.blessing===progress.blessing));}
 for(const b of document.querySelectorAll('[data-blessing]'))b.onclick=()=>{if(game.mode!=='won')return;progress.blessing=b.dataset.blessing;saveProgress();updateProgress();};
 let actors=null,renderDt=1/60,selecting=false,selectionToken=0,selectedId='druid',selectedBuild=0;
